@@ -11,8 +11,8 @@ import time
 import numpy as np
 import cvxpy
 import sys
-from cf_cbf.drone_parameters import DroneParameters
-from cf_cbf.ugv_lib import UGV
+from cbf_constraints.drone_parameters import DroneParameters
+from cbf_constraints.ugv_parameters import UgvParameters
 
 def dist(x_):
     return np.linalg.norm(x_)
@@ -21,7 +21,7 @@ def sq_dist(x_, y_):
     return np.sum(np.square(x_) / np.square(y_))
 
 
-class DroneController:
+class CentralController:
     droneOdomSub = []
     ugvOdomSub = []
     droneParamSub = []
@@ -36,9 +36,7 @@ class DroneController:
         self.t = rospy.get_time()
 
         self.drones = [DroneParameters('dcf6'), DroneParameters('dcf5'), DroneParameters('dcf2'), DroneParameters('demo_crazyflie1')]
-        # self.drones = [DroneParameters('cf8')]
         self.ugvs = [UGV('demo_turtle4'), UGV('demo_turtle3'), UGV('demo_turtle2'), UGV('demo_turtle1')]
-        # self.ugvs = [UGV('demo_turtle2')]
         self.lenDrones = len(self.drones)
         self.rate = rospy.Rate(60)
         self.modeSub = rospy.Subscriber('/uav_modes', Int8Array, self.setMode)
