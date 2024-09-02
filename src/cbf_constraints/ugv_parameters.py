@@ -9,6 +9,7 @@ class UgvParameters(object):
     def __init__(self, name): 
         self.name = name
         self.pos = np.array([0.0, 0, 0])
+        self.posOff = np.array([0.0, 0, 0])
         self.quat = np.array([0.0, 0, 0, 1])
 
         self.vel = np.array([0, 0.0, 0])
@@ -24,8 +25,6 @@ class UgvParameters(object):
         self.hz = 1.0
         self.dt = 1/self.hz
         self.control_input = np.array([0.0, 0.0, 0.0])
-        self.cmdVel = Twist()
-        self.ref = PoseStamped()
 
         self.rate = rospy.Rate(self.hz)
 
@@ -52,10 +51,14 @@ class UgvParameters(object):
         self.kScaleA = self.kHeight/(self.kRad*self.kRad)
         # print(self.kScaleA)
         self.omegaA = 3.0
+        self.omegaB = 0.3
 
 
-        self.odomStatus = False
+        self.odomFlag = False
         self.constraintsReceived = False
+
+        self.followFlag = True
+        self.returnFlag = False
 
 
     def odom_cb(self, data):        
@@ -73,11 +76,23 @@ class UgvParameters(object):
         # self.R = np.linalg.inv(R_inv)
         self.R = np.array([[np.cos(self.yaw), np.sin(self.yaw)], [-np.sin(self.yaw), np.cos(self.yaw)]])
 
-        velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z])
+        self.posOff[0] = self.pos[0] + np.cos(self.yaw)*self.off
+        self.posOff[1] = self.pos[1] + np.sin(self.yaw)*self.off
+
+        velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y])
         self.vel = self.R.T.dot(velocity)
         self.ang_vel[2] = data.twist.twist.angular.z
+        self.odomFlag = True
 
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)
+        self.kOffset = np.array(msg.kOffset)
+        self.kRate = np.array(msg.kRate)
+        self.kHeight = np.array(msg.kHeight)
+        self.kScaleA = np.array(msg.kScaleA)
+        self.kScaleD = np.array(msg.kScaleD)
+        self.omegaA = msg.omegaA
+        self.omegaB = msg.omegaB
         self.omegaC = msg.omegaC
+        self.omegaD = msg.omegaD
 

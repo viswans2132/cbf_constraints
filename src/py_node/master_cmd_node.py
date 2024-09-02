@@ -6,7 +6,7 @@ from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Header, Int8
-from cf_cbf.msg import PosVelMsg, ConstraintMsg, DroneParamsMsg, Int8Array
+from cf_cbf.msg import DronePosVelMsg, DroneConstraintMsg, DroneParamsMsg, DroneInt8Array
 import time
 import numpy as np
 import cvxpy
@@ -41,13 +41,13 @@ class DroneController:
         # self.ugvs = [UGV('demo_turtle2')]
         self.lenDrones = len(self.drones)
         self.rate = rospy.Rate(60)
-        self.modeSub = rospy.Subscriber('/uav_modes', Int8Array, self.setMode)
+        self.modeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setMode)
 
         for drone in self.drones:
             self.droneOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(drone.name, drone.name), Odometry, drone.odom_cb))
             self.droneParamSub.append(rospy.Subscriber('/{}/params'.format(drone.name), DroneParamsMsg, drone.params_cb))
-            self.droneRefPub.append(rospy.Publisher('/{}/ref'.format(drone.name), PosVelMsg, queue_size=10))
-            self.droneConsPub.append(rospy.Publisher('/{}/cons'.format(drone.name), ConstraintMsg, queue_size=10))
+            self.droneRefPub.append(rospy.Publisher('/{}/ref'.format(drone.name), DronePosVelMsg, queue_size=10))
+            self.droneConsPub.append(rospy.Publisher('/{}/cons'.format(drone.name), DroneConstraintMsg, queue_size=10))
             self.droneModePub.append(rospy.Publisher('/{}/uav_mode'.format(drone.name), Int8, queue_size=10))
 
 
@@ -131,7 +131,7 @@ class DroneController:
                                     # whdhdt = -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])
                                     # print(whdhdt)
                                     b_[i] = np.vstack((b_[i], -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])))
-                        droneConsMsg = ConstraintMsg()
+                        droneConsMsg = DroneConstraintMsg()
                         # print('A_: {}'.format(A_[i]))
                         # print('b_: {}'.format(b_[i]))
                         # # print(np.append(A_[i].flatten(),b_[i]))
