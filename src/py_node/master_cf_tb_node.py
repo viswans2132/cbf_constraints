@@ -23,20 +23,23 @@ def sq_dist(x_, y_):
 
 class CentralController:
     droneOdomSub = []
-    ugvOdomSub = []
     droneParamSub = []
     droneRefPub = []
     droneConsPub = []
     droneModePub = []
-    ugvCmdPub = []
+    ugvOdomSub = []
+    UgvParamSub = []
+    UgvRefPub = []
+    UgvConsPub = []
+    UgvModePub = []
     def __init__(self, name):
         self.name = name
         self.filterFlag = False
 
         self.t = rospy.get_time()
 
-        self.drones = [DroneParameters('dcf6'), DroneParameters('dcf5'), DroneParameters('dcf2'), DroneParameters('demo_crazyflie1')]
-        self.ugvs = [UGV('demo_turtle4'), UGV('demo_turtle3'), UGV('demo_turtle2'), UGV('demo_turtle1')]
+        self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('demo_crazyflie1')]
+        self.ugvs = [UGV('demo_turtle1'), UGV('demo_turtle2'), UGV('demo_turtle3')]
         self.lenDrones = len(self.drones)
         self.rate = rospy.Rate(60)
         self.modeSub = rospy.Subscriber('/uav_modes', Int8Array, self.setMode)

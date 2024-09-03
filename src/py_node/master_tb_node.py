@@ -33,10 +33,12 @@ class UgvController:
 
         self.t = rospy.get_time()
 
-        self.ugvs = [UgvParameters('demo_turtle3'), UgvParameters('demo_turtle4'), UgvParameters('demo_turtle2'), UgvParameters('demo_turtle1')]
+        self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle2'), UgvParameters('demo_turtle3'), UgvParameters('demo_turtle4')]
         self.lenUgvs = len(self.ugvs)
         self.rate = rospy.Rate(60)
         self.modeSub = rospy.Subscriber('/ugv_modes', UgvInt8Array, self.setMode)
+
+        self.offsetW = [-0.5, -0.5]
 
 
 
@@ -72,24 +74,24 @@ class UgvController:
             if ugvI.odomFlag:
                 C_[i][0,0] = -1
                 C_[i][0,1] =  0
-                d_[i][0] =  -ugvI.omegaB*(1.5 - ugvI.off - ugvI.posOff[0])
+                d_[i][0] =  -ugvI.omegaB*(1.5 + self.offsetW[0] - ugvI.off - ugvI.posOff[0])
                 C_[i][1,0] = 1
                 C_[i][1,1] =  0
-                d_[i][1] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[0] + 1.5)
+                d_[i][1] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[0] + 1.5 - self.offsetW[0])
                 C_[i][2,0] = 0
                 C_[i][2,1] =  -1
-                d_[i][2] =  -ugvI.omegaB*(1.5 - ugvI.off - ugvI.posOff[1])
+                d_[i][2] =  -ugvI.omegaB*(1.5 + self.offsetW[1] - ugvI.off - ugvI.posOff[1])
                 # print('h1: {}'.format(ugvI.pos[1] - ugvI.posOff[1]))
                 C_[i][3,0] = 0
                 C_[i][3,1] =  1
-                d_[i][3] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[1] + 1.5)
+                d_[i][3] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[1] + 1.5 - self.offsetW[1])
                 # print('h2: {}'.format(ugvI.off + ugvI.posOff[1] + 1.5))
                 for ugvK in self.ugvs[j:]:
                     if ugvK.odomFlag:
                         ugvErrPos = ugvI.posOff - ugvK.posOff
                         if dist(ugvErrPos) < 2.0:
                             sqHorDist = sq_dist(ugvI.pos[:2] - ugvK.pos[:2], np.array([1,1]))
-                            rad = ugvI.kRad + ugvI.off
+                            rad = ugvI.kRad + 2*ugvI.off
                             h = sqHorDist - rad*rad
                             C_[i] = np.vstack((C_[i], np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
                             C_[j] = np.vstack((C_[j], -np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
@@ -157,22 +159,22 @@ class UgvController:
     def getPosVelMsg(self, msg, i, time):
         time =  time - self.t
         if i == 1:
-            msg.position = [np.cos(time/10), np.sin(time/10)]
+            msg.position = [np.cos(time/10) + self.offsetW[0], np.sin(time/10) + self.offsetW[1]]
             msg.velocity = [-np.sin(time/10)/10, np.cos(time/10)/10]
         elif i == 2:
-            if (int(time/20))%2 == 0:
-                msg.position = [1.5, 0.0]
+            if (int(time/30))%2 == 0:
+                msg.position = [1.5 + self.offsetW[0], 0.0 + self.offsetW[1]]
                 msg.velocity = [0.0, 0.0]
             else:
-                msg.position = [-1.5, 0.0]
-                msg.velocity = [0.0, 0.0]
+                msg.position = [-1.5 + self.offsetW[0], 0.0 + self.offsetW[1]]
+                msg.velocity = [0.0, 0.0] 
         else:
-            if (int(time/20))%2 == 0:
-                msg.position = [0.0, 1.5]
+            if (int(time/30))%2 == 0:
+                msg.position = [0.0 + self.offsetW[0], 1.5 + self.offsetW[1]]
                 msg.velocity = [0.0, 0.0]
             else:
-                msg.position = [0.0, -1.5]
-                msg.velocity = [0.0, 0.0]
+                msg.position = [0.0 + self.offsetW[0], -1.5 + self.offsetW[1]]
+                msg.velocity = [0.0, 0.0] 
 
 
 
