@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+	<include file="$(find cbf_constraints)/launch/multi_cf.launch">
+	</include>
+	<include file="$(find tb_cbf)/launch/multi_tb.launch">
+	</include>
+</launch>

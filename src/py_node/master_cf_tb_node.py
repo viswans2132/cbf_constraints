@@ -6,7 +6,8 @@ from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Header, Int8
-from cf_cbf.msg import PosVelMsg, ConstraintMsg, DroneParamsMsg, Int8Array
+from cf_cbf.msg import DronePosVelMsg, DroneConstraintMsg, DroneParamsMsg, DroneInt8Array
+from tb_cbf.msg import UgvPosVelMsg, UgvConstraintMsg, UgvParamsMsg, UgvInt8Array
 import time
 import numpy as np
 import cvxpy
@@ -28,10 +29,10 @@ class CentralController:
     droneConsPub = []
     droneModePub = []
     ugvOdomSub = []
-    UgvParamSub = []
-    UgvRefPub = []
-    UgvConsPub = []
-    UgvModePub = []
+    ugvParamSub = []
+    ugvRefPub = []
+    ugvConsPub = []
+    ugvModePub = []
     def __init__(self, name):
         self.name = name
         self.filterFlag = False
@@ -39,22 +40,28 @@ class CentralController:
         self.t = rospy.get_time()
 
         self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('demo_crazyflie1')]
-        self.ugvs = [UGV('demo_turtle1'), UGV('demo_turtle2'), UGV('demo_turtle3')]
+        self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle2'), UgvParameters('demo_turtle3')]
         self.lenDrones = len(self.drones)
+        self.lenUgvs = len(self.ugvs)
         self.rate = rospy.Rate(60)
-        self.modeSub = rospy.Subscriber('/uav_modes', Int8Array, self.setMode)
+        self.modeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setMode)
+
+        self.offsetW = [-0.5, -0.5]
 
         for drone in self.drones:
             self.droneOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(drone.name, drone.name), Odometry, drone.odom_cb))
             self.droneParamSub.append(rospy.Subscriber('/{}/params'.format(drone.name), DroneParamsMsg, drone.params_cb))
-            self.droneRefPub.append(rospy.Publisher('/{}/ref'.format(drone.name), PosVelMsg, queue_size=10))
-            self.droneConsPub.append(rospy.Publisher('/{}/cons'.format(drone.name), ConstraintMsg, queue_size=10))
+            self.droneRefPub.append(rospy.Publisher('/{}/ref'.format(drone.name), DronePosVelMsg, queue_size=10))
+            self.droneConsPub.append(rospy.Publisher('/{}/cons'.format(drone.name), DroneConstraintMsg, queue_size=10))
             self.droneModePub.append(rospy.Publisher('/{}/uav_mode'.format(drone.name), Int8, queue_size=10))
 
 
         for ugv in self.ugvs:
             self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
-            self.ugvCmdPub.append(rospy.Publisher('/{}/cmd_vel'.format(ugv.name), Twist, queue_size=10))
+            self.ugvParamSub.append(rospy.Subscriber('/{}/params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
+            self.ugvRefPub.append(rospy.Publisher('/{}/ref'. format(ugv.name), UgvPosVelMsg, queue_size=10))
+            self.ugvConsPub.append(rospy.Publisher('/{}/cons'. format(ugv.name), UgvConstraintMsg, queue_size=10))
+            self.ugvModePub.append(rospy.Publisher('/{}/ugv_mode'. format(ugv.name), Int8, queue_size=10))
 
 
         print('Sleeping')
@@ -65,20 +72,83 @@ class CentralController:
             modeMsg.data = 1
             self.droneModePub[i].publish(modeMsg)
 
+        time.sleep(2)
+
+        for i in range(self.lenDrones):
+            modeMsg = Int8()
+            modeMsg.data = 1
+            self.ugvModePub[i].publish(modeMsg)
+
+
         while not rospy.is_shutdown():
             self.loop()
 
 
     def loop(self):
         A_ = [np.zeros((1,3))]*self.lenDrones
-        C_ = [np.zeros((1,2))]*self.lenDrones
         b_ = [0]*self.lenDrones
-        d_ = [0]*self.lenDrones
+
+        C_ = [np.zeros((4,2))]*self.lenUgvs
+        d_ = [np.zeros((4,1))]*self.lenUgvs
         i = 0
         for droneI in self.drones:
             if droneI.odomFlag:
                 ugvI = self.ugvs[i]
-                if self.filterFlag: 
+                if self.filterFlag:
+                    if ugvI.odomFlag:
+                        C_[i][0,0] = -1
+                        C_[i][0,1] =  0
+                        d_[i][0] =  -ugvI.omegaB*(1.5 + self.offsetW[0] - ugvI.off - ugvI.posOff[0])
+                        C_[i][1,0] = 1
+                        C_[i][1,1] =  0
+                        d_[i][1] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[0] + 1.5 - self.offsetW[0])
+                        C_[i][2,0] = 0
+                        C_[i][2,1] =  -1
+                        d_[i][2] =  -ugvI.omegaB*(1.5 + self.offsetW[1] - ugvI.off - ugvI.posOff[1])
+                        # print('h1: {}'.format(ugvI.pos[1] - ugvI.posOff[1]))
+                        C_[i][3,0] = 0
+                        C_[i][3,1] =  1
+                        d_[i][3] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[1] + 1.5 - self.offsetW[1])
+                        # print('h2: {}'.format(ugvI.off + ugvI.posOff[1] + 1.5))
+                        for ugvK in self.ugvs[j:]:
+                            if ugvK.odomFlag:
+                                ugvErrPos = ugvI.posOff - ugvK.posOff
+                                if dist(ugvErrPos) < 2.0:
+                                    sqHorDist = sq_dist(ugvI.pos[:2] - ugvK.pos[:2], np.array([1,1]))
+                                    rad = ugvI.kRad + 2*ugvI.off
+                                    h = sqHorDist - rad*rad
+                                    C_[i] = np.vstack((C_[i], np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
+                                    C_[j] = np.vstack((C_[j], -np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
+                                    # whdhdt = -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])
+                                    # print(whdhdt)
+                                    d_[i] = np.vstack((d_[i], -ugvK.omegaC*h + 2*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])))
+                                    d_[j] = np.vstack((d_[j], -ugvK.omegaC*h - 2*(ugvErrPos[0]*ugvI.vel[0] + ugvErrPos[1]*ugvI.vel[1])))
+                        ugvConsMsg = UgvConstraintMsg()
+                        try:
+                            Cd_ = np.hstack((C_[i], d_[i].reshape((-1,1)))).flatten()
+                            ugvConsMsg.constraints = Cd_.tolist()
+                            self.ugvConsPub[i].publish(ugvConsMsg)
+                        except ValueError:
+                            # print([A_[i].shape, b_[i].shape, ugvI.name])
+                            print('Incompatible C and d')
+
+                        refMsg = UgvPosVelMsg()
+                        refMsg.position = [ugvI.pos[0], ugvI.pos[1]]
+                        refMsg.velocity = [0.0, 0.0]
+
+                        if ugvI.followFlag:
+                            self.getPosVelMsg(refMsg, i, rospy.get_time())
+
+                        elif ugvI.returnFlag:
+                            if ugvI.odomStatus:
+                                refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
+                                refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
+
+                        self.gvRefPub[i].publish(refMsg)
+                        # print('Publishing: {}, {}'.format(ugvI.name, refMsg.position))
+
+
+
                     sqHorDist = sq_dist(ugvI.pos[:2] - droneI.pos[:2], np.ones((2,)))
                     ugvErrPos = droneI.pos - ugvI.pos
                     ugvErrVel = droneI.vel[:2] - ugvI.vel[:2]
@@ -132,7 +202,7 @@ class CentralController:
                                     # whdhdt = -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])
                                     # print(whdhdt)
                                     b_[i] = np.vstack((b_[i], -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])))
-                        droneConsMsg = ConstraintMsg()
+                        droneConsMsg = DroneConstraintMsg()
                         # print('A_: {}'.format(A_[i]))
                         # print('b_: {}'.format(b_[i]))
                         # # print(np.append(A_[i].flatten(),b_[i]))
@@ -148,7 +218,7 @@ class CentralController:
                             # print([A_[i].shape, b_[i].shape, droneI.name])
                             print('Incompatible A and b')
 
-                        refMsg = PosVelMsg()
+                        refMsg = DronePosVelMsg()
                         refMsg.position = [droneI.pos[0], droneI.pos[1], 0.5]
                         refMsg.velocity = [0.0, 0.0, 0.0]
                         refMsg.yaw = 0.0
@@ -241,6 +311,6 @@ class CentralController:
 if __name__ == '__main__':
      try:
         rospy.init_node('crazyflie_controller', anonymous=True)
-        dc = DroneController('controller')
+        dc = CentralController('controller')
      except rospy.ROSInterruptException:
         pass

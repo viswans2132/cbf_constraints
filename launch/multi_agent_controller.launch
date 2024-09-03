@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<launch>	
+<launch>
 	<group ns="demo_crazyflie1">
 		<node pkg="cf_cbf" name="drone_node" type="dis_drone_node.py" output="screen">
 			<param name="uav_name" value="demo_crazyflie1" />
@@ -19,8 +19,24 @@
 		<node pkg="cf_cbf" name="drone_node" type="dis_drone_node.py" output="screen">
 			<param name="uav_name" value="dcf6" />
 		</node>
+	</group>
+	<group ns="demo_turtle1">
+		<node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node.py" output="screen">
+			<param name="ugv_name" value="demo_turtle1" />
+		</node>
 	</group> 
-
-	<node pkg="cf_cbf" name="master_cf_node" type="master_cmd_node.py" output="screen"/>
+	
+	<group ns="demo_turtle2">
+		<node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node.py" output="screen">
+			<param name="ugv_name" value="demo_turtle2" />
+		</node>
+	</group> 
+	
+	<group ns="demo_turtle3">
+		<node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node.py" output="screen">
+			<param name="ugv_name" value="demo_turtle3" />
+		</node>
+	</group> 
+	<node pkg="cbf_constraints" name="master_cf_tb_node" type="master_cf_tb_node.py" output="screen"/>
 
 </launch>
