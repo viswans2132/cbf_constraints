@@ -43,8 +43,8 @@ class UgvController:
 
 
         for ugv in self.ugvs:
-            self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
-            # self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name), Odometry, ugv.odom_cb))
+            # self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name), Odometry, ugv.odom_cb))
             self.ugvParamSub.append(rospy.Subscriber('/{}/params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
             self.ugvRefPub.append(rospy.Publisher('/{}/ref'.format(ugv.name), UgvPosVelMsg, queue_size=10))
             self.ugvConsPub.append(rospy.Publisher('/{}/cons'.format(ugv.name), UgvConstraintMsg, queue_size=10))
@@ -116,7 +116,7 @@ class UgvController:
                     self.getPosVelMsg(refMsg, i, rospy.get_time())
 
                 elif ugvI.returnFlag:
-                    if ugvI.odomStatus:
+                    if ugvI.odomFlag:
                         refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
                         refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
 

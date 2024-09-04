@@ -21,6 +21,6 @@
 		</node>
 	</group> 
 
-	<node pkg="cf_cbf" name="master_cf_node" type="master_cmd_node.py" output="screen"/>
+	<node pkg="cbf_constraints" name="master_cf_node" type="master_cmd_node.py" output="screen"/>
 
 </launch>

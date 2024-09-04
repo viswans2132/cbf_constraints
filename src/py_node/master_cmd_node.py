@@ -12,7 +12,7 @@ import numpy as np
 import cvxpy
 import sys
 from cbf_constraints.drone_parameters import DroneParameters
-from cbf_constraints.ugv_parameters import UGV
+from cbf_constraints.ugv_parameters import UgvParameters as UGV
 
 def dist(x_):
     return np.linalg.norm(x_)
@@ -37,7 +37,7 @@ class DroneController:
 
         self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('dcf5'), DroneParameters('demo_crazyflie1')]
         # self.drones = [DroneParameters('cf8')]
-        self.ugvs = [UGV('demo_turtle1'), UGV('demo_turtle2'), UGV('demo_turtle3'), UGV('demo_turtle4')]
+        self.ugvs = [UGV('demo_turtle4'), UGV('demo_turtle2'), UGV('demo_turtle3'), UGV('demo_turtle1')]
         # self.ugvs = [UGV('demo_turtle2')]
         self.lenDrones = len(self.drones)
         self.rate = rospy.Rate(60)
@@ -147,7 +147,7 @@ class DroneController:
                             # print([A_[i].shape, b_[i].shape, droneI.name])
                             print('Incompatible A and b')
 
-                        refMsg = PosVelMsg()
+                        refMsg = DronePosVelMsg()
                         refMsg.position = [droneI.pos[0], droneI.pos[1], 0.5]
                         refMsg.velocity = [0.0, 0.0, 0.0]
                         refMsg.yaw = 0.0

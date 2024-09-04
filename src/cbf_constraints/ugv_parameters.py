@@ -17,7 +17,7 @@ class UgvParameters(object):
 
         self.off = 0.1
 
-        self.desPos = np.array([2.0, 2.0])
+        self.desPos = np.array([2.0, 2.0, 0.0])
 
         self.kPos = np.array([-2.0, -2.0])
 
@@ -59,6 +59,7 @@ class UgvParameters(object):
 
         self.followFlag = True
         self.returnFlag = False
+        self.reverseFlag = False
 
 
     def odom_cb(self, data):        
@@ -82,7 +83,9 @@ class UgvParameters(object):
         velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y])
         self.vel = self.R.T.dot(velocity)
         self.ang_vel[2] = data.twist.twist.angular.z
-        self.odomFlag = True
+        if self.odomFlag == False:
+            self.odomFlag = True
+            print('Odometry Received: {}'.format(self.name))
 
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)

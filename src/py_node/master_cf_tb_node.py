@@ -39,7 +39,7 @@ class CentralController:
 
         self.t = rospy.get_time()
 
-        self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('demo_crazyflie1')]
+        self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('dcf5')]
         self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle2'), UgvParameters('demo_turtle3')]
         self.lenDrones = len(self.drones)
         self.lenUgvs = len(self.ugvs)
@@ -74,7 +74,7 @@ class CentralController:
 
         time.sleep(2)
 
-        for i in range(self.lenDrones):
+        for i in range(self.lenUgvs):
             modeMsg = Int8()
             modeMsg.data = 1
             self.ugvModePub[i].publish(modeMsg)
@@ -92,63 +92,71 @@ class CentralController:
         d_ = [np.zeros((4,1))]*self.lenUgvs
         i = 0
         for droneI in self.drones:
-            if droneI.odomFlag:
-                ugvI = self.ugvs[i]
-                if self.filterFlag:
+            ugvI = self.ugvs[i]            
+            if ugvI.odomFlag:
+                C_[i][0,0] = -1
+                C_[i][0,1] =  0
+                d_[i][0] =  -ugvI.omegaB*(1.4 + self.offsetW[0] - ugvI.off - ugvI.posOff[0])
+                C_[i][1,0] = 1
+                C_[i][1,1] =  0
+                d_[i][1] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[0] + 1.4 - self.offsetW[0])
+                C_[i][2,0] = 0
+                C_[i][2,1] =  -1
+                d_[i][2] =  -ugvI.omegaB*(1.4 + self.offsetW[1] - ugvI.off - ugvI.posOff[1])
+                # print('h1: {}'.format(ugvI.pos[1] - ugvI.posOff[1]))
+                C_[i][3,0] = 0
+                C_[i][3,1] =  1
+                d_[i][3] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[1] + 1.4 - self.offsetW[1])
+                # print('h2: {}'.format(ugvI.off + ugvI.posOff[1] + 1.5))
+                k = i+1
+                for ugvK in self.ugvs[k:]:
+                    if ugvK.odomFlag:
+                        ugvErrPos = ugvI.posOff - ugvK.posOff
+                        if dist(ugvErrPos) < 2.0:
+                            sqHorDist = sq_dist(ugvI.pos[:2] - ugvK.pos[:2], np.array([1,1]))
+                            rad = ugvI.kRad + 2*ugvI.off
+                            h = sqHorDist - rad*rad
+                            C_[i] = np.vstack((C_[i], np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
+                            C_[k] = np.vstack((C_[k], -np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
+                            # whdhdt = -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])
+                            # print(whdhdt)
+                            d_[i] = np.vstack((d_[i], -ugvK.omegaC*h + 2*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])))
+                            d_[k] = np.vstack((d_[k], -ugvK.omegaC*h - 2*(ugvErrPos[0]*ugvI.vel[0] + ugvErrPos[1]*ugvI.vel[1])))
+                ugvConsMsg = UgvConstraintMsg()
+                try:
+                    Cd_ = np.hstack((C_[i], d_[i].reshape((-1,1)))).flatten()
+                    ugvConsMsg.constraints = Cd_.tolist()
+                    self.ugvConsPub[i].publish(ugvConsMsg)
+                except ValueError:
+                    # print([A_[i].shape, b_[i].shape, ugvI.name])
+                    print('Incompatible C and d')
+
+                refMsg = UgvPosVelMsg()
+                refMsg.position = [ugvI.pos[0], ugvI.pos[1]]
+                refMsg.velocity = [0.0, 0.0]
+
+                if ugvI.followFlag:
+                    # print(np.linalg.norm(ugvI.desPos[:2] - ugvI.pos[:2]))
+                    # print(ugvI.reverseFlag)
+                    if np.linalg.norm(ugvI.desPos[:2] - ugvI.pos[:2]) < 0.15:
+                        if ugvI.reverseFlag:
+                            ugvI.reverseFlag = False
+                        else:
+                            ugvI.reverseFlag = True
+
+                    self.getUgvPosVelMsg(refMsg, i, ugvI.reverseFlag, rospy.get_time())
+                    ugvI.desPos = np.array(refMsg.position)
+
+                elif ugvI.returnFlag:
                     if ugvI.odomFlag:
-                        C_[i][0,0] = -1
-                        C_[i][0,1] =  0
-                        d_[i][0] =  -ugvI.omegaB*(1.5 + self.offsetW[0] - ugvI.off - ugvI.posOff[0])
-                        C_[i][1,0] = 1
-                        C_[i][1,1] =  0
-                        d_[i][1] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[0] + 1.5 - self.offsetW[0])
-                        C_[i][2,0] = 0
-                        C_[i][2,1] =  -1
-                        d_[i][2] =  -ugvI.omegaB*(1.5 + self.offsetW[1] - ugvI.off - ugvI.posOff[1])
-                        # print('h1: {}'.format(ugvI.pos[1] - ugvI.posOff[1]))
-                        C_[i][3,0] = 0
-                        C_[i][3,1] =  1
-                        d_[i][3] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[1] + 1.5 - self.offsetW[1])
-                        # print('h2: {}'.format(ugvI.off + ugvI.posOff[1] + 1.5))
-                        for ugvK in self.ugvs[j:]:
-                            if ugvK.odomFlag:
-                                ugvErrPos = ugvI.posOff - ugvK.posOff
-                                if dist(ugvErrPos) < 2.0:
-                                    sqHorDist = sq_dist(ugvI.pos[:2] - ugvK.pos[:2], np.array([1,1]))
-                                    rad = ugvI.kRad + 2*ugvI.off
-                                    h = sqHorDist - rad*rad
-                                    C_[i] = np.vstack((C_[i], np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
-                                    C_[j] = np.vstack((C_[j], -np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
-                                    # whdhdt = -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])
-                                    # print(whdhdt)
-                                    d_[i] = np.vstack((d_[i], -ugvK.omegaC*h + 2*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])))
-                                    d_[j] = np.vstack((d_[j], -ugvK.omegaC*h - 2*(ugvErrPos[0]*ugvI.vel[0] + ugvErrPos[1]*ugvI.vel[1])))
-                        ugvConsMsg = UgvConstraintMsg()
-                        try:
-                            Cd_ = np.hstack((C_[i], d_[i].reshape((-1,1)))).flatten()
-                            ugvConsMsg.constraints = Cd_.tolist()
-                            self.ugvConsPub[i].publish(ugvConsMsg)
-                        except ValueError:
-                            # print([A_[i].shape, b_[i].shape, ugvI.name])
-                            print('Incompatible C and d')
+                        refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
+                        refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
 
-                        refMsg = UgvPosVelMsg()
-                        refMsg.position = [ugvI.pos[0], ugvI.pos[1]]
-                        refMsg.velocity = [0.0, 0.0]
+                self.ugvRefPub[i].publish(refMsg)
+                # print('Publishing: {}, {}'.format(ugvI.name, refMsg.position))
 
-                        if ugvI.followFlag:
-                            self.getPosVelMsg(refMsg, i, rospy.get_time())
-
-                        elif ugvI.returnFlag:
-                            if ugvI.odomStatus:
-                                refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
-                                refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
-
-                        self.gvRefPub[i].publish(refMsg)
-                        # print('Publishing: {}, {}'.format(ugvI.name, refMsg.position))
-
-
-
+            if droneI.odomFlag:
+                if self.filterFlag:
                     sqHorDist = sq_dist(ugvI.pos[:2] - droneI.pos[:2], np.ones((2,)))
                     ugvErrPos = droneI.pos - ugvI.pos
                     ugvErrVel = droneI.vel[:2] - ugvI.vel[:2]
@@ -225,10 +233,10 @@ class CentralController:
                         refMsg.yawVelocity = 0.0
 
                         if droneI.followFlag:
-                            self.getPosVelMsg(refMsg, droneI.offsetAngle, rospy.get_time())
+                            self.getDronePosVelMsg(refMsg, droneI.offsetAngle, rospy.get_time())
 
                         elif droneI.returnFlag:
-                            if ugvI.odomStatus:
+                            if ugvI.odomFlag:
                                 refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
                                 refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
                             # else:
@@ -278,7 +286,7 @@ class CentralController:
         self.landFlag = True
         print('Safety Landing: Active')
 
-    def getPosVelMsg(self, msg, offset, time):
+    def getDronePosVelMsg(self, msg, offset, time):
         time =  time - self.t
         msg.position = [np.cos(offset + time/5), np.sin(offset + time/5), 0.8]
         # msg.position = [0, 0, 0.5]
@@ -286,6 +294,31 @@ class CentralController:
         # msg.velocity = [0.0, -0.0, 0.0]
         msg.yaw = 0.0
         msg.yawVelocity = 0.0
+
+
+    def getUgvPosVelMsg(self, msg, i, flag, time):
+        time =  time - self.t
+        if i == 1:
+            msg.position = [np.cos(time/10) + self.offsetW[0], np.sin(time/10) + self.offsetW[1]]
+            msg.velocity = [-np.sin(time/10)/10, np.cos(time/10)/10]
+        elif i == 2:
+            # if (int(time/30))%2 == 0:
+            if flag:    
+                msg.position = [1.4 + self.offsetW[0], 0.0 + self.offsetW[1]]
+                msg.velocity = [0.0, 0.0]
+            else:
+                msg.position = [-1.4 + self.offsetW[0], 0.0 + self.offsetW[1]]
+                msg.velocity = [0.0, 0.0] 
+        else:
+            if flag:
+            # if (int(time/30))%2 == 0:
+                msg.position = [0.0 + self.offsetW[0], 1.4 + self.offsetW[1]]
+                msg.velocity = [0.0, 0.0]
+            else:
+                msg.position = [0.0 + self.offsetW[0], -1.4 + self.offsetW[1]]
+                msg.velocity = [0.0, 0.0] 
+
+
 
 
 

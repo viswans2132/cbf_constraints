@@ -9,6 +9,7 @@ class DroneParameters(object):
     def __init__(self, name):    
         self.name = name
         self.pos = np.array([0.0, 0, 0])
+        self.desPos = np.array([0.0, 0, 0])
         self.quat = np.array([0.0, 0, 0, 1])
         self.yaw = 0.0
         self.offsetAngle = 0.0
