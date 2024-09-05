@@ -65,7 +65,7 @@ class UgvParameters(object):
     def odom_cb(self, data):        
         self.pos[0] = float(data.pose.pose.position.x)
         self.pos[1] = float(data.pose.pose.position.y)
-        self.pos[2] = float(data.pose.pose.position.z)
+        self.pos[2] = float(data.pose.pose.position.z) + 0.05
         self.quat[0] = float(data.pose.pose.orientation.x)
         self.quat[1] = float(data.pose.pose.orientation.y)
         self.quat[2] = float(data.pose.pose.orientation.z)
@@ -81,7 +81,7 @@ class UgvParameters(object):
         self.posOff[1] = self.pos[1] + np.sin(self.yaw)*self.off
 
         velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y])
-        self.vel = self.R.T.dot(velocity)
+        self.vel[:2] = self.R.T.dot(velocity)
         self.ang_vel[2] = data.twist.twist.angular.z
         if self.odomFlag == False:
             self.odomFlag = True
