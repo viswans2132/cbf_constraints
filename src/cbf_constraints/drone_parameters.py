@@ -20,6 +20,7 @@ class DroneParameters(object):
 
         self.kRad = np.array([0.3, 0.3, 0.8])
         self.omegaC = 5.0
+        self.omegaB = 1.0
 
         self.odomFlag = False
         self.followFlag = False

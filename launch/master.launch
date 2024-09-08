@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="cbf_constraints" name="master_cf_tb_node" type="master_cf_tb_node.py" output="screen"/>
+</launch>
