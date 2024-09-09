@@ -270,7 +270,7 @@ class CentralController:
 
                         elif droneI.returnFlag:
                             if ugvI.odomFlag:
-                                refMsg.position = [ugvI.pos[0] + (ugvI.posOff[0] - ugv.pos[0])/10, ugvI.pos[1] + (ugvI.posOff[1] - ugv.pos[1])/10, ugvI.pos[2]]
+                                refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
                                 refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
                             # else:
                             #     # print("UGV position not received. Landing at the current position")
