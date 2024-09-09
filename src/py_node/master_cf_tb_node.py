@@ -39,7 +39,7 @@ class CentralController:
 
         self.t = rospy.get_time()
 
-        self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('dcf5')]
+        self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('cf8')]
         self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle4'), UgvParameters('demo_turtle3')]
         self.lenDrones = len(self.drones)
         self.lenUgvs = len(self.ugvs)
@@ -189,16 +189,16 @@ class CentralController:
                         b_[i][3] =  -droneI.omegaB*(droneI.pos[1] + 1.3 - self.offsetW[1])
                         A_[i][4,0] = 0
                         A_[i][4,1] =  -1
-                        b_[i][4] =  -droneI.omegaB*(2.0 + self.offsetW[1] - droneI.pos[2])
+                        b_[i][4] =  -droneI.omegaB*(2.0 - droneI.pos[2])
 
                         h = ugvErrPos[2] - ugvI.kRate*ugvI.kScaleD*sqHorDist*(np.exp(-ugvI.kRate*sqHorDist)) - ugvI.kOffset
-                        if droneI.name == 'dcf5':
-                            print('H: {}: {}'.format(h, ugvI.name))
                         dhdx = 2*ugvI.kRate*ugvI.kScaleD*(ugvI.kRate*sqHorDist - 1)*np.exp(-ugvI.kRate*sqHorDist)*ugvErrPos[0]
                         dhdy = 2*ugvI.kRate*ugvI.kScaleD*(ugvI.kRate*sqHorDist - 1)*np.exp(-ugvI.kRate*sqHorDist)*ugvErrPos[1]
                         dhdz = 1
                         dhdt = 2*ugvI.kRate*ugvI.kScaleD*(1 - ugvI.kRate)*np.exp(-ugvI.kRate*sqHorDist)*(ugvErrPos[0]*ugvI.vel[0] + ugvErrPos[1]*ugvI.vel[1])
-                        # print(- ugvI.omegaD*h - dhdt)
+                        # if droneI.name == "dcf6":
+                        #     print('H: {}: {}'.format(h, ugvI.name))
+                        #     print(- ugvI.omegaD*h)
 
                         A_[i] = np.vstack((A_[i], np.array([dhdx,dhdy, dhdz])))
                         b_[i] = np.vstack((b_[i], - ugvI.omegaD*h - dhdt))
