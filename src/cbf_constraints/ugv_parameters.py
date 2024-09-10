@@ -66,7 +66,7 @@ class UgvParameters(object):
     def odom_cb(self, data):        
         self.pos[0] = float(data.pose.pose.position.x)
         self.pos[1] = float(data.pose.pose.position.y)
-        self.pos[2] = float(data.pose.pose.position.z) + 0.04
+        self.pos[2] = float(data.pose.pose.position.z) + 0.07
         self.quat[0] = float(data.pose.pose.orientation.x)
         self.quat[1] = float(data.pose.pose.orientation.y)
         self.quat[2] = float(data.pose.pose.orientation.z)
