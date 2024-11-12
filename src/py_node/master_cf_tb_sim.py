@@ -39,8 +39,8 @@ class CentralController:
 
         self.t = rospy.get_time()
 
-        self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('cf8')]
-        self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle4'), UgvParameters('demo_turtle3')]
+        self.drones = [DroneParameters('dcf1'), DroneParameters('dcf2'), DroneParameters('dcf3')]
+        self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle2'), UgvParameters('demo_turtle3')]
         self.lenDrones = len(self.drones)
         self.lenUgvs = len(self.ugvs)
         self.rate = rospy.Rate(60)
@@ -50,7 +50,7 @@ class CentralController:
         self.offsetW = [0.0, 0.0]
 
         for drone in self.drones:
-            self.droneOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(drone.name, drone.name), Odometry, drone.odom_cb))
+            self.droneOdomSub.append(rospy.Subscriber('/{}/odometry_sensor1/odometry'.format(drone.name), Odometry, drone.odom_cb))
             self.droneParamSub.append(rospy.Subscriber('/{}/params'.format(drone.name), DroneParamsMsg, drone.params_cb))
             self.droneRefPub.append(rospy.Publisher('/{}/ref'.format(drone.name), DronePosVelMsg, queue_size=10))
             self.droneConsPub.append(rospy.Publisher('/{}/cons'.format(drone.name), DroneConstraintMsg, queue_size=10))
@@ -58,7 +58,7 @@ class CentralController:
 
 
         for ugv in self.ugvs:
-            self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
             self.ugvParamSub.append(rospy.Subscriber('/{}/params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
             self.ugvRefPub.append(rospy.Publisher('/{}/ref'. format(ugv.name), UgvPosVelMsg, queue_size=10))
             self.ugvConsPub.append(rospy.Publisher('/{}/cons'. format(ugv.name), UgvConstraintMsg, queue_size=10))
@@ -97,17 +97,17 @@ class CentralController:
             if ugvI.odomFlag:
                 C_[i][0,0] = -1
                 C_[i][0,1] =  0
-                d_[i][0] =  -ugvI.omegaB*(2.0 + self.offsetW[0] - ugvI.off - ugvI.posOff[0])
+                d_[i][0] =  -ugvI.omegaB*(1.5 + self.offsetW[0] - ugvI.off - ugvI.posOff[0])
                 C_[i][1,0] = 1
                 C_[i][1,1] =  0
-                d_[i][1] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[0] + 2.0 - self.offsetW[0])
+                d_[i][1] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[0] + 1.5 - self.offsetW[0])
                 C_[i][2,0] = 0
                 C_[i][2,1] =  -1
-                d_[i][2] =  -ugvI.omegaB*(2.0 + self.offsetW[1] - ugvI.off - ugvI.posOff[1])
+                d_[i][2] =  -ugvI.omegaB*(1.5 + self.offsetW[1] - ugvI.off - ugvI.posOff[1])
                 # print('h1: {}'.format(ugvI.pos[1] - ugvI.posOff[1]))
                 C_[i][3,0] = 0
                 C_[i][3,1] =  1
-                d_[i][3] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[1] + 2.0 - self.offsetW[1])
+                d_[i][3] =  -ugvI.omegaB*(-ugvI.off + ugvI.posOff[1] + 1.5 - self.offsetW[1])
                 # print('h2: {}'.format(ugvI.off + ugvI.posOff[1] + 1.5))
                 k = i+1
                 # print([i,k])
@@ -120,9 +120,8 @@ class CentralController:
                             h = sqHorDist - rad*rad
                             C_[i] = np.vstack((C_[i], np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
                             C_[k] = np.vstack((C_[k], -np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
-                            if i==1:
-                                whdhdt = -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])
-                                print(h)
+                            # whdhdt = -ugvK.omegaA*h + 2*ugvK.kScaleA*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])
+                            # print(whdhdt)
                             d_[i] = np.vstack((d_[i], -ugvK.omegaC*h + 2*(ugvErrPos[0]*ugvK.vel[0] + ugvErrPos[1]*ugvK.vel[1])))
                             d_[k] = np.vstack((d_[k], -ugvK.omegaC*h - 2*(ugvErrPos[0]*ugvI.vel[0] + ugvErrPos[1]*ugvI.vel[1])))
                             # print([C_[i].shape, C_[k].shape, ugvI.name, ugvK.name])
@@ -167,7 +166,7 @@ class CentralController:
                     ugvErrVel = droneI.vel[:2] - ugvI.vel[:2]
                     # print("{}: {:.3f}, {:.3f}, {:.3f}".format(ugvI.name, ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]))
                     # print("{:.3f}, {:.3f}, {:.3f}".format(droneI.pos[0], droneI.pos[1], droneI.pos[2]))
-                    if ugvErrPos[0] < 0.012 and ugvErrPos[1] < 0.012 and ugvErrPos[2] < 0.04 and np.linalg.norm(ugvErrVel) < 0.05:
+                    if sqHorDist < 0.000225 and ugvErrPos[2] < 0.04 and np.linalg.norm(ugvErrVel) < 0.1:
                         # print('Time to initiate landing')
                         # print("{:.3f}, {:.3f}, {:.3f}, {:.3f}".format(ugvErrPos[0], ugvErrPos[1], ugvErrPos[2]))
                         droneModeMsg = Int8()
@@ -177,17 +176,17 @@ class CentralController:
                     else:
                         A_[i][0,0] = -1
                         A_[i][0,1] =  0
-                        b_[i][0] =  -droneI.omegaB*(2.0 + self.offsetW[0] - droneI.pos[0])
+                        b_[i][0] =  -droneI.omegaB*(1.4 + self.offsetW[0] - droneI.pos[0])
                         A_[i][1,0] = 1
                         A_[i][1,1] =  0
-                        b_[i][1] =  -droneI.omegaB*(droneI.pos[0] + 2.0 - self.offsetW[0])
+                        b_[i][1] =  -droneI.omegaB*(droneI.pos[0] + 1.4 - self.offsetW[0])
                         A_[i][2,0] = 0
                         A_[i][2,1] =  -1
-                        b_[i][2] =  -droneI.omegaB*(2.0 + self.offsetW[1] - droneI.pos[1])
+                        b_[i][2] =  -droneI.omegaB*(1.4 + self.offsetW[1] - droneI.pos[1])
                         # print('h1: {}'.format(ugvI.pos[1] - ugvI.posOff[1]))
                         A_[i][3,0] = 0
                         A_[i][3,1] =  1
-                        b_[i][3] =  -droneI.omegaB*(droneI.pos[1] + 2.0 - self.offsetW[1])
+                        b_[i][3] =  -droneI.omegaB*(droneI.pos[1] + 1.4 - self.offsetW[1])
                         A_[i][4,0] = 0
                         A_[i][4,1] =  -1
                         b_[i][4] =  -droneI.omegaB*(2.0 - droneI.pos[2])
@@ -273,8 +272,6 @@ class CentralController:
                             if ugvI.odomFlag:
                                 refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
                                 refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
-                                # refMsg.position = [1.0, 1.0, 0.1]
-                                # refMsg.velocity = [0.0, 0.0, 0.0]
                             # else:
                             #     # print("UGV position not received. Landing at the current position")
                             #     refMsg.position = [droneI.pos[0], droneI.pos[1], 0.5]
@@ -355,8 +352,8 @@ class CentralController:
             msg.position = [np.cos(offset - time/10) + self.offsetW[0], np.sin(offset - time/10) + self.offsetW[1]]
             msg.velocity = [np.sin(offset - time/10)/10, -np.cos(offset - time/10)/10]
         elif i == 2:
-            msg.position = [-1.0*np.cos(offset + time/12) + self.offsetW[0], -0.3*np.sin(offset + time/12) + self.offsetW[1]]
-            msg.velocity = [1.0*np.sin(offset + time/12)/12, -0.3*np.cos(offset + time/12)/12]
+            msg.position = [-1.5*np.cos(offset + time/12) + self.offsetW[0], -0.3*np.sin(offset + time/12) + self.offsetW[1]]
+            msg.velocity = [1.5*np.sin(offset + time/12)/12, -0.3*np.cos(offset + time/12)/12]
             # # if (int(time/30))%2 == 0:
             # if flag:    
             #     msg.position = [1.3 + self.offsetW[0], 0.0 + self.offsetW[1]]
@@ -365,8 +362,8 @@ class CentralController:
             #     msg.position = [-1.3 + self.offsetW[0], 0.0 + self.offsetW[1]]
             #     msg.velocity = [0.0, 0.0] 
         else:
-            msg.position = [0.3*np.sin(offset + time/10) + self.offsetW[0], 1.0*np.cos(offset + time/10) + self.offsetW[1]]
-            msg.velocity = [0.3*np.cos(offset + time/10)/10, -1.0*np.sin(offset + time/10)/10]
+            msg.position = [0.3*np.sin(offset + time/10) + self.offsetW[0], 1.5*np.cos(offset + time/10) + self.offsetW[1]]
+            msg.velocity = [0.3*np.cos(offset + time/10)/10, -1.5*np.sin(offset + time/10)/10]
             # if flag:
             # # if (int(time/30))%2 == 0:
             #     msg.position = [0.0 + self.offsetW[0], 1.3 + self.offsetW[1]]

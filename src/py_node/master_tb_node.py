@@ -48,7 +48,7 @@ class UgvController:
             self.ugvParamSub.append(rospy.Subscriber('/{}/params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
             self.ugvRefPub.append(rospy.Publisher('/{}/ref'.format(ugv.name), UgvPosVelMsg, queue_size=10))
             self.ugvConsPub.append(rospy.Publisher('/{}/cons'.format(ugv.name), UgvConstraintMsg, queue_size=10))
-            self.ugvModePub.append(rospy.Publisher('/{}/uav_mode'.format(ugv.name), Int8, queue_size=10))
+            self.ugvModePub.append(rospy.Publisher('/{}/ugv_mode'.format(ugv.name), Int8, queue_size=10))
 
 
         print('Sleeping')
@@ -120,7 +120,7 @@ class UgvController:
                         refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
                         refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
 
-                self.ugvRefPub[i].publish(refMsg)
+                # self.ugvRefPub[i].publish(refMsg)
                 # print('Publishing: {}, {}'.format(ugvI.name, refMsg.position))
                 self.rate.sleep()
             i = i+1

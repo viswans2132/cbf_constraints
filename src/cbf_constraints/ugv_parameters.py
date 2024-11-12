@@ -45,7 +45,7 @@ class UgvParameters(object):
         self.kOffset = 0.0
         self.omegaD = 0.7
         
-        self.kRad = 0.4
+        self.kRad = 0.2
         self.omegaC = 0.2
 
         self.kHeight = 1.0
@@ -63,10 +63,10 @@ class UgvParameters(object):
         self.reverseFlag = False
 
 
-    def odom_cb(self, data):        
+    def odom_cb(self, data):
         self.pos[0] = float(data.pose.pose.position.x)
-        self.pos[1] = float(data.pose.pose.position.y)
-        self.pos[2] = float(data.pose.pose.position.z) + 0.07
+        self.pos[1] = float(data.pose.pose.position.y) 
+        self.pos[2] = float(data.pose.pose.position.z) + 0.05
         self.quat[0] = float(data.pose.pose.orientation.x)
         self.quat[1] = float(data.pose.pose.orientation.y)
         self.quat[2] = float(data.pose.pose.orientation.z)
@@ -80,6 +80,10 @@ class UgvParameters(object):
 
         self.posOff[0] = self.pos[0] + np.cos(self.yaw)*self.off
         self.posOff[1] = self.pos[1] + np.sin(self.yaw)*self.off
+
+        self.pos[0] = self.pos[0] - 0.07*np.cos(self.yaw)
+        self.pos[1] = self.pos[1] - 0.07*np.sin(self.yaw)
+        self.pos[2] = self.pos[2] + 0.25
 
         velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y])
         self.vel[:2] = self.R.T.dot(velocity)

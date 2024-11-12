@@ -9,7 +9,8 @@ class DroneParameters(object):
     def __init__(self, name):    
         self.name = name
         self.pos = np.array([0.0, 0, 0])
-        self.desPos = np.array([0.0, 0, 0])
+        self.desPos1 = np.array([0.0, 0, 0])
+        self.desPos2 = np.array([0.0, 0, 0])
         self.quat = np.array([0.0, 0, 0, 1])
         self.yaw = 0.0
         self.offsetAngle = 0.0
@@ -25,6 +26,9 @@ class DroneParameters(object):
         self.odomFlag = False
         self.followFlag = False
         self.returnFlag = False
+        self.firstTask = True
+        self.secondTask = False
+        self.landTime = rospy.get_time()
 
         self.startTime = rospy.get_time()
 
@@ -54,4 +58,13 @@ class DroneParameters(object):
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)
         self.omegaC = msg.omegaC
+
+
+    def land_cb(self, msg):
+        if self.firstTask:
+            self.firstTask = False
+            self.secondTask = True
+            self.returnFlag = False
+            self.followFlag = True
+            self.landTime = rospy.get_time()
 
