@@ -23,6 +23,7 @@ def sq_dist(x_, y_):
 
 
 class CentralController:
+    droneLandSub = []
     droneOdomSub = []
     droneParamSub = []
     droneRefPub = []
@@ -76,8 +77,8 @@ class CentralController:
             modeMsg.data = 1
             self.droneModePub[i].publish(modeMsg)
             self.drones[i].offsetAngle = np.arctan2(self.drones[i].pos[1] - self.offsetW[1], self.drones[i].pos[0] - self.offsetW[0])
-            self.drones[i].desPos1 = [self.setpoints[np.random.randint(7)], self.setpoints[np.random.randint(7)], 0.8]
-            self.drones[i].desPos2 = [self.setpoints[np.random.randint(7)], self.setpoints[np.random.randint(7)], 0.8]
+            self.drones[i].desPos1 = np.array([self.setpoints[np.random.randint(7)], self.setpoints[np.random.randint(7)], 0.8])
+            self.drones[i].desPos2 = np.array([self.setpoints[np.random.randint(7)], self.setpoints[np.random.randint(7)], 0.8])
 
         time.sleep(2)
 
@@ -164,7 +165,7 @@ class CentralController:
                         refMsg.position = [ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]]
                         refMsg.velocity = [ugvI.vel[0], ugvI.vel[1], ugvI.vel[2]]
 
-                # self.ugvRefPub[i].publish(refMsg)
+                self.ugvRefPub[i].publish(refMsg)
                 # print('Publishing: {}, {}'.format(ugvI.name, refMsg.position))
 
             if droneI.odomFlag:
@@ -174,9 +175,10 @@ class CentralController:
                     ugvErrVel = droneI.vel[:2] - ugvI.vel[:2]
                     # print("{}: {:.3f}, {:.3f}, {:.3f}".format(ugvI.name, ugvI.pos[0], ugvI.pos[1], ugvI.pos[2]))
                     # print("{:.3f}, {:.3f}, {:.3f}".format(droneI.pos[0], droneI.pos[1], droneI.pos[2]))
-                    if sqHorDist < 0.000225 and ugvErrPos[2] < 0.04 and np.linalg.norm(ugvErrVel) < 0.1 and droneI.firstTask:
+                    # if droneI.name == "dcf1":
+                    #     print("{:.3f}, {:.3f}, {:.3f}, {:.3f}".format(ugvErrPos[0], ugvErrPos[1], ugvErrPos[2], sqHorDist))
+                    if sqHorDist < 0.0004 and ugvErrPos[2] < 0.04 and np.linalg.norm(ugvErrVel) < 0.1 and not droneI.secondTask:
                         # print('Time to initiate landing')
-                        # print("{:.3f}, {:.3f}, {:.3f}, {:.3f}".format(ugvErrPos[0], ugvErrPos[1], ugvErrPos[2]))
                         droneModeMsg = Int8()
                         droneModeMsg.data = 2
                         self.droneModePub[i].publish(droneModeMsg)
@@ -266,22 +268,34 @@ class CentralController:
                             print('Incompatible A and b')
 
                         refMsg = DronePosVelMsg()
-                        refMsg.position = [droneI.pos[0], droneI.pos[1], 0.5]
+                        refMsg.position = [droneI.pos[0], droneI.pos[1], 0.8]
                         refMsg.velocity = [0.0, 0.0, 0.0]
                         refMsg.yaw = 0.0
                         refMsg.yawVelocity = 0.0
 
                         if droneI.followFlag:
                             if droneI.firstTask:
-                                if np.linalg.norm(self.droneI.pos - self.droneI.desPos1) < 0.1:
-                                    droneI.firstTask = False
-                                refMsg.position = self.droneI.desPos1.tolist()
+                                print(np.linalg.norm(droneI.pos - droneI.desPos1))
+                                if np.linalg.norm(droneI.pos - droneI.desPos1) < 0.1:
+                                    # droneI.firstTask = False
+                                    droneModeMsg = Int8()
+                                    droneModeMsg.data = 1
+                                    self.droneModePub[i].publish(droneModeMsg)
+                                    droneI.returnFlag = True
+                                    droneI.followFlag = False
+                                refMsg.position = droneI.desPos1.tolist()
                             elif droneI.secondTask:
-                                if np.linalg.norm(self.droneI.pos - self.droneI.desPos2) < 0.1:
+                                if np.linalg.norm(droneI.pos - droneI.desPos2) < 0.1:
                                     droneI.secondTask = False
+                                    droneModeMsg = Int8()
+                                    droneModeMsg.data = 1
+                                    self.droneModePub[i].publish(droneModeMsg)
+                                    droneI.returnFlag = True
+                                    droneI.followFlag = False
                                 else:
                                     if (rospy.get_time() - droneI.landTime) > 5.0:
-                                        refMsg.position = self.droneI.desPos2.tolist()
+                                        print('Going to second task')
+                                        refMsg.position = droneI.desPos2.tolist()
                                         droneModeMsg = Int8()
                                         droneModeMsg.data = 0
                                         self.droneModePub[i].publish(droneModeMsg)
@@ -299,6 +313,7 @@ class CentralController:
 
 
                         self.droneRefPub[i].publish(refMsg)
+                        # print(refMsg.position[2])
                         # print('Publishing: {}'.format(droneI.name))
             else:
                 # print('Odometry Not received for {}'.format(droneI.name))
@@ -374,8 +389,8 @@ class CentralController:
     def getUgvPosVelMsg(self, msg, i, flag, time):
         time =  time - self.t
         if i == 1:
-            msg.position = [-np.cos(time/20) + self.offsetW[0], np.sin(time/20) + self.offsetW[1]]
-            msg.velocity = [np.sin(time/20)/20, np.cos(time/20)/20]
+            msg.position = [-np.cos(time/10) + self.offsetW[0], np.sin(time/10) + self.offsetW[1]]
+            msg.velocity = [np.sin(time/10)/10, np.cos(time/10)/10]
         elif i == 2:
             msg.position = [-1.2*np.cos(time/10) + self.offsetW[0], -0.3*np.sin(time/10) + self.offsetW[1]]
             msg.velocity = [1.2*np.sin(time/10)/10, -0.3*np.cos(time/10)/10]
