@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="cbf_constraints" name="master_cf_tb_node" type="tro_master_cf_tb_sim.py" output="screen"/>
+</launch>
