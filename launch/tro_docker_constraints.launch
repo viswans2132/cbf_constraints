@@ -1,3 +1,6 @@
 <launch>
-  <node pkg="cbf_constraints" name="master_cf_tb_node" type="tro_master_cf_tb_sim.py" output="screen"/>
+  <arg name="no_of_agents"  default="3"/>
+  <node pkg="cbf_constraints" name="master_cf_tb_node" type="tro_master_cf_tb_sim.py" output="screen">
+    <param name="no_of_agents" value="$(arg no_of_agents)" />
+  </node>
 </launch>

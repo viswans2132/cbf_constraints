@@ -15,7 +15,7 @@
  
   <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
   <arg name="first_tb3"  default="demo_turtle1"/>
-  <arg name="second_tb3" default="demo_turtle2"/>
+  <arg name="second_tb3" default="demo_turtle4"/>
   <arg name="third_tb3"  default="demo_turtle3"/>
 
   <arg name="first_tb3_x_pos" default=" -1.0"/>
@@ -33,8 +33,6 @@
   <arg name="third_tb3_z_pos" default=" 0.0"/>
   <arg name="third_tb3_yaw"   default=" 0.0"/>
 
-
-
    <env name="GAZEBO_MODEL_PATH" value="${GAZEBO_MODEL_PATH}:$(find rotors_gazebo)/models"/>
   <env name="GAZEBO_RESOURCE_PATH" value="${GAZEBO_RESOURCE_PATH}:$(find rotors_gazebo)/resource:$(find rotors_gazebo)/models:$(find rotors_gazebo)/models"/>
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -44,8 +42,6 @@
     <arg name="gui" value="$(arg gui)" />
     <arg name="verbose" value="$(arg verbose)"/>
   </include>
-
-
 
   <group ns = "$(arg first_tb3)">
     <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
@@ -108,7 +104,7 @@
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="x" default="1.5"/>
-      <arg name="y" default="1.0"/>
+      <arg name="y" default="0.5"/>
       <arg name="z" default="0.1"/>
     </include>
 
@@ -123,79 +119,20 @@
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="x" default="1.5"/>
-      <arg name="y" default="-1.0"/>
+      <arg name="y" default="-0.5"/>
       <arg name="z" default="0.1"/>
     </include>
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
   </group>
-
-  <group ns="dcf1">
-     <node name="position_controller_node" pkg="ss_workshop" type="ss_$(arg controller_name)_node" output="screen">      
-      <rosparam command="load" file="$(find ss_workshop)/resources/$(arg controller_name)_$(arg mav_name).yaml" />
-      <rosparam command="load" file="$(find rotors_gazebo)/resource/$(arg mav_name).yaml" />
-      <remap from="odom_msg" to="odometry_sensor1/odometry" />
-      <remap from="traj_msg" to="command/trajectory" />      
-    </node>
-    
-    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
-      <param name="uav_name" value="dcf1" />
-    </node>
-  </group> 
-
-  <group ns="dcf2">
-     <node name="position_controller_node" pkg="ss_workshop" type="ss_$(arg controller_name)_node" output="screen">      
-      <rosparam command="load" file="$(find ss_workshop)/resources/$(arg controller_name)_$(arg mav_name).yaml" />
-      <rosparam command="load" file="$(find rotors_gazebo)/resource/$(arg mav_name).yaml" />
-      <remap from="odom_msg" to="odometry_sensor1/odometry" />
-      <remap from="traj_msg" to="command/trajectory" />      
-    </node>
-
-    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
-      <param name="uav_name" value="dcf2" />
-    </node>
-  </group> 
-
-  <group ns="dcf3">
-     <node name="position_controller_node" pkg="ss_workshop" type="ss_$(arg controller_name)_node" output="screen">      
-      <rosparam command="load" file="$(find ss_workshop)/resources/$(arg controller_name)_$(arg mav_name).yaml" />
-      <rosparam command="load" file="$(find rotors_gazebo)/resource/$(arg mav_name).yaml" />
-      <remap from="odom_msg" to="odometry_sensor1/odometry" />
-      <remap from="traj_msg" to="command/trajectory" />      
-    </node>
-    
-    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
-      <param name="uav_name" value="dcf3" />
-    </node>
-  </group> 
-  <group ns="demo_turtle1">
-    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
-      <param name="ugv_name" value="demo_turtle1" />
-    </node>
-  </group> 
-  
-  <group ns="demo_turtle2">
-    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
-      <param name="ugv_name" value="demo_turtle2" />
-    </node>
-  </group> 
-  
-  <group ns="demo_turtle3">
-    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
-      <param name="ugv_name" value="demo_turtle3" />
-    </node>
-  </group> 
-  <node pkg="cbf_constraints" name="master_cf_tb_node" type="tro_master_cf_tb_sim.py" output="screen">
-    <param name="no_of_agents" value="3" />
-  </node>
 <!-- 
   <node pkg="tf" type="static_transform_publisher" name="bf_dt1_broadcaster" args="0 0 0 0 0 0 1 base_footprint demo_turtle1/base_footprint 1000" />
   <node pkg="tf" type="static_transform_publisher" name="bf_dt3_broadcaster" args="0 0 0 0 0 0 1 base_footprint demo_turtle3/base_footprint 1000" />
-  <node pkg="tf" type="static_transform_publisher" name="bf_dt4_broadcaster" args="0 0 0 0 0 0 1 base_footprint demo_turtle2/base_footprint 1000" /> -->
+  <node pkg="tf" type="static_transform_publisher" name="bf_dt4_broadcaster" args="0 0 0 0 0 0 1 base_footprint demo_turtle4/base_footprint 1000" /> -->
   <node pkg="tf" type="static_transform_publisher" name="world_odom_broadcaster" args="0 0 0 0 0 0 1 world odom 1000" />
   <node pkg="tf" type="static_transform_publisher" name="world_map_broadcaster" args="0 0 0 0 0 0 1 world map 1000" />
   <node pkg="tf" type="static_transform_publisher" name="odom_dt1odom_broadcaster" args="0 0 0 0 0 0 1 odom demo_turtle1/odom 1000" />
-  <node pkg="tf" type="static_transform_publisher" name="odom_dt4odom_broadcaster" args="0 0 0 0 0 0 1 odom demo_turtle2/odom 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="odom_dt4odom_broadcaster" args="0 0 0 0 0 0 1 odom demo_turtle4/odom 1000" />
   <node pkg="tf" type="static_transform_publisher" name="odom_dt3odom_broadcaster" args="0 0 0 0 0 0 1 odom demo_turtle3/odom 1000" />
 
 

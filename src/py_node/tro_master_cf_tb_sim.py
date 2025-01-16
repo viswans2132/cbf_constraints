@@ -34,14 +34,25 @@ class CentralController:
     ugvRefPub = []
     ugvConsPub = []
     ugvModePub = []
-    def __init__(self, name):
+    def __init__(self, name, no_agents):
         self.name = name
         self.filterFlag = False
+        self.no_agents = no_agents
 
         self.t = rospy.get_time()
+        self.drones = []
+        self.ugvs = []
 
-        self.drones = [DroneParameters('dcf1'), DroneParameters('dcf2'), DroneParameters('dcf3')]
-        self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle4'), UgvParameters('demo_turtle3')]
+        for i in range(no_agents):
+            drone_name = 'dcf' + str(i)
+            ugv_name = 'demo_turtle' + str(i)
+            self.drones.append(DroneParameters(drone_name))
+            self.ugvs.append(UgvParameters(ugv_name))
+
+
+
+        # self.drones = [DroneParameters('dcf1'), DroneParameters('dcf2'), DroneParameters('dcf3')]
+        # self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle4'), UgvParameters('demo_turtle3')]
         self.lenDrones = len(self.drones)
         self.lenUgvs = len(self.ugvs)
         self.rate = rospy.Rate(60)
@@ -438,6 +449,8 @@ class CentralController:
 if __name__ == '__main__':
      try:
         rospy.init_node('crazyflie_controller', anonymous=True)
-        dc = CentralController('controller')
+        no_agents = int(rospy.get_param('~no_of_agents'))
+
+        dc = CentralController('controller', no_agents)
      except rospy.ROSInterruptException:
         pass
