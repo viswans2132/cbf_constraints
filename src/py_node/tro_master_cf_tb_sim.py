@@ -44,8 +44,8 @@ class CentralController:
         self.ugvs = []
 
         for i in range(no_agents):
-            drone_name = 'dcf' + str(i)
-            ugv_name = 'demo_turtle' + str(i)
+            drone_name = 'dcf' + str(i+1)
+            ugv_name = 'demo_turtle' + str(i+1)
             self.drones.append(DroneParameters(drone_name))
             self.ugvs.append(UgvParameters(ugv_name))
 
