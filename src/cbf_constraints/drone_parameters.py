@@ -58,6 +58,7 @@ class DroneParameters(object):
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)
         self.omegaC = msg.omegaC
+        print('Parameters received: {}'.format(self.name))
 
 
     def land_cb(self, msg):

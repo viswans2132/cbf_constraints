@@ -305,7 +305,7 @@ class CentralController:
                                     droneI.followFlag = False
                                 else:
                                     if (rospy.get_time() - droneI.landTime) > 5.0:
-                                        print('Going to second task')
+                                        print('{}: Going to second task'.format(droneI.name))
                                         refMsg.position = droneI.desPos2.tolist()
                                         droneModeMsg = Int8()
                                         droneModeMsg.data = 0
