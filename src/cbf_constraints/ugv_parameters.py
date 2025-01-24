@@ -1,7 +1,7 @@
 import rospy
 import numpy as np
 from tf.transformations import euler_from_quaternion, quaternion_matrix
-from cf_cbf.msg import DroneParamsMsg
+from tb_cbf.msg import UgvParamsMsg
 from nav_msgs.msg import Odometry
 
 class UgvParameters(object):
@@ -62,11 +62,13 @@ class UgvParameters(object):
         self.returnFlag = False
         self.reverseFlag = False
 
+        self.ugvMode = 0
+
 
     def odom_cb(self, data):
         self.pos[0] = float(data.pose.pose.position.x)
         self.pos[1] = float(data.pose.pose.position.y) 
-        self.pos[2] = float(data.pose.pose.position.z) + 0.05
+        self.pos[2] = float(data.pose.pose.position.z) + 0.02
         self.quat[0] = float(data.pose.pose.orientation.x)
         self.quat[1] = float(data.pose.pose.orientation.y)
         self.quat[2] = float(data.pose.pose.orientation.z)
@@ -104,3 +106,11 @@ class UgvParameters(object):
         self.omegaC = msg.omegaC
         self.omegaD = msg.omegaD
 
+        paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), UgvParamsMsg, queue_size=10)
+        paramsPublisher.publish(msg)
+        print('Parameters received: {}'.format(self.name))
+
+
+
+    def mode_cb(self, msg):
+        self.ugvMode = msg.data

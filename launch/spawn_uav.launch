@@ -1,0 +1,38 @@
+<launch>
+  <arg name="namespace" default="$(arg namespace)" />
+  <arg name="enable_logging" default="false" />
+  <arg name="enable_ground_truth" default="true" />
+  <arg name="log_file" default="$(arg namespace)" />
+  <arg name="init_x" default="$(arg init_x)" />
+  <arg name="init_y" default="$(arg init_y)" />
+  <arg name="init_z" default="$(arg init_z)" />
+  
+
+
+  <group ns="$(arg namespace)">
+    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+      <arg name="namespace" value="$(arg namespace)"/>
+      <arg name="mav_name" value="hummingbird"/>
+      <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" />
+      <arg name="enable_logging" value="$(arg enable_logging)" />
+      <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
+      <arg name="x" value="$(arg init_x)"/>
+      <arg name="y" value="$(arg init_y)"/>
+      <arg name="z" value="$(arg init_z)"/>
+    </include>
+<!-- 
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
+      <rosparam command="load" file="$(find ss_workshop)/resources/vel_hummingbird.yaml" />
+      <rosparam command="load" file="$(find rotors_gazebo)/resource/hummingbird.yaml" />
+      <remap from="odom_msg" to="odometry_sensor1/odometry" />
+      <remap from="traj_msg" to="command/trajectory" />      
+    </node>
+    
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="$(arg namespace)" />
+    </node> -->
+  </group> 
+
+</launch>

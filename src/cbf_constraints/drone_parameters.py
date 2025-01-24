@@ -32,6 +32,8 @@ class DroneParameters(object):
 
         self.startTime = rospy.get_time()
 
+        self.droneMode = 0
+
 
     def odom_cb(self, data):
         self.pos[0] = float(data.pose.pose.position.x)
@@ -58,6 +60,8 @@ class DroneParameters(object):
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)
         self.omegaC = msg.omegaC
+        paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), DroneParamsMsg, queue_size=10)
+        paramsPublisher.publish(msg)
         print('Parameters received: {}'.format(self.name))
 
 
@@ -68,4 +72,9 @@ class DroneParameters(object):
             self.returnFlag = False
             self.followFlag = True
             self.landTime = rospy.get_time()
+
+
+
+    def mode_cb(self, msg):
+        self.droneMode = msg.data
 
