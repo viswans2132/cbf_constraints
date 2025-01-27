@@ -61,7 +61,7 @@ class CentralController:
         self.droneUpdateModeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setDroneMode)
         self.ugvUpdateModeSub = rospy.Subscriber('/ugv_modes', UgvInt8Array, self.setUgvMode)
 
-        self.offsetW = [0.0, 0.0]
+        self.offsetW = [0.16, -0.95]
 
         for drone in self.drones:
             self.droneOdomSub.append(rospy.Subscriber('/{}/odometry_sensor1/odometry'.format(drone.name), Odometry, drone.odom_cb))
@@ -74,6 +74,7 @@ class CentralController:
 
 
         for ugv in self.ugvs:
+            # self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
             self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
             self.ugvParamSub.append(rospy.Subscriber('/{}/update_params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
             self.ugvModeSub.append(rospy.Subscriber('/{}/ugv_mode'.format(ugv.name), Int8, ugv.mode_cb))
@@ -104,6 +105,7 @@ class CentralController:
             while(self.ugvs[i].ugvMode != 1):
                 modeMsg = Int8()
                 modeMsg.data = 1
+                print('{}: Hello_init'.format(self.ugvs[i].name))
                 self.ugvModePub[i].publish(modeMsg)
                 self.rate.sleep()
 
@@ -117,15 +119,16 @@ class CentralController:
 
 
     def loop(self):
-
         A_ = [np.zeros((5,3))]*self.lenUgvs
         b_ = [np.zeros((5,1))]*self.lenUgvs
         C_ = [np.zeros((4,2))]*self.lenUgvs
         d_ = [np.zeros((4,1))]*self.lenUgvs
         i = 0
         for droneI in self.drones:
+            print('Hello')
             ugvI = self.ugvs[i]            
             if ugvI.odomFlag:
+                print('Hello2')
                 C_[i][0,0] = -1
                 C_[i][0,1] =  0
                 d_[i][0] =  -ugvI.omegaB*(1.3 + self.offsetW[0] - ugvI.off - ugvI.posOff[0])
@@ -186,7 +189,7 @@ class CentralController:
                         refMsg.velocity = [0.0, 0.0]
 
                 self.ugvRefPub[i].publish(refMsg)
-                # print('Publishing: {}, {}'.format(ugvI.name, refMsg.position))
+                print('Publishing: {}, {}'.format(ugvI.name, refMsg.position))
 
             if droneI.odomFlag:
                 if self.filterFlag:
@@ -418,11 +421,13 @@ class CentralController:
         time =  time - self.t
 
         if i%2 == 0:
-            msg.position = [-1.5*np.cos(time/15) + self.offsetW[0] + 0.5*i, -0.3*np.sin(time/15) + self.offsetW[1]]
-            msg.velocity = [-1.5*np.sin(time/15)/15, -0.3*np.cos(time/15)/15]
+            msg.position = [-1.5*np.cos(time/15) + self.offsetW[0], -0.1*np.sin(time/15) + self.offsetW[1]]
+            # msg.velocity = [1.5*np.sin(time/15)/15, -0.1*np.cos(time/15)/15]
+            msg.velocity = [0.0, 0.0]
         else:
-            msg.position = [0.3*np.sin(time/15) + self.offsetW[0], 1.5*np.cos(time/15) + self.offsetW[1] + 0.5*i]
-            msg.velocity = [0.3*np.sin(time/15)/15, 1.5*np.sin(time/15)/15]
+            msg.position = [0.1*np.sin(time/15) + self.offsetW[0], 1.5*np.cos(time/15) + self.offsetW[1]]
+            # msg.velocity = [0.1*np.cos(time/15)/15, -1.5*np.sin(time/15)/15]
+            msg.velocity = [0.0, 0.0]
 
         # if i == 1:
         #     msg.position = [-np.cos(time/12) + self.offsetW[0], np.sin(time/12) + self.offsetW[1]]

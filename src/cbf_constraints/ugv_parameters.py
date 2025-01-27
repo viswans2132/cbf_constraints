@@ -64,6 +64,11 @@ class UgvParameters(object):
 
         self.ugvMode = 0
 
+        self.northBound = 1.5
+        self.southBound = -1.5
+        self.eastBound = -1.5
+        self.westBound = 1.5
+
 
     def odom_cb(self, data):
         self.pos[0] = float(data.pose.pose.position.x)

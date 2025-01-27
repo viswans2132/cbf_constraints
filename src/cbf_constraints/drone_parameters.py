@@ -33,6 +33,12 @@ class DroneParameters(object):
         self.startTime = rospy.get_time()
 
         self.droneMode = 0
+        self.tasks = []
+
+        self.northBound = 1.5
+        self.southBound = -1.5
+        self.eastBound = -1.5
+        self.westBound = -1.5
 
 
     def odom_cb(self, data):

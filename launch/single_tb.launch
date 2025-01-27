@@ -1,0 +1,50 @@
+<launch>
+
+  <group ns="dcf1">
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf1" />
+    </node>
+  </group> 
+
+  <group ns="dcf2">
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf2" />
+    </node>
+  </group> 
+
+  <group ns="dcf3">
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf3" />
+    </node>
+  </group> 
+
+  <group ns="turtle1">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node.py" output="screen">
+      <param name="ugv_name" value="turtle1" />
+    </node>
+  </group> 
+  
+  <group ns="turtle2">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node.py" output="screen">
+      <param name="ugv_name" value="turtle2" />
+    </node>
+  </group> 
+  
+  <group ns="turtle3">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node.py" output="screen">
+      <param name="ugv_name" value="turtle3" />
+    </node>
+  </group> 
+  <node pkg="cbf_constraints" name="master_cf_tb_node" type="tro_master_cf_tb_sim.py" output="screen">
+    <param name="no_of_agents" value="3" />
+  </node>
+<!-- 
+  <node pkg="tf" type="static_transform_publisher" name="bf_dt1_broadcaster" args="0 0 0 0 0 0 1 base_footprint demo_turtle1/base_footprint 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="bf_dt3_broadcaster" args="0 0 0 0 0 0 1 base_footprint demo_turtle3/base_footprint 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="bf_dt4_broadcaster" args="0 0 0 0 0 0 1 base_footprint demo_turtle2/base_footprint 1000" /> -->
+  <node pkg="tf" type="static_transform_publisher" name="world_odom_broadcaster" args="0 0 0 0 0 0 1 world odom 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="world_map_broadcaster" args="0 0 0 0 0 0 1 world map 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="odom_dt1odom_broadcaster" args="0 0 0 0 0 0 1 odom demo_turtle1/odom 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="odom_dt4odom_broadcaster" args="0 0 0 0 0 0 1 odom demo_turtle2/odom 1000" />
+  <node pkg="tf" type="static_transform_publisher" name="odom_dt3odom_broadcaster" args="0 0 0 0 0 0 1 odom demo_turtle3/odom 1000" />
+</launch>

@@ -23,14 +23,17 @@ def sq_dist(x_, y_):
 
 
 class CentralController:
+    droneLandSub = []
     droneOdomSub = []
     droneParamSub = []
+    droneModeSub = []
     droneRefPub = []
     droneConsPub = []
     droneModePub = []
     ugvOdomSub = []
     ugvParamSub = []
     ugvRefPub = []
+    ugvModeSub = []
     ugvConsPub = []
     ugvModePub = []
     def __init__(self, name):
@@ -40,12 +43,12 @@ class CentralController:
         self.t = rospy.get_time()
 
         self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('cf8')]
-        self.ugvs = [UgvParameters('demo_turtle1'), UgvParameters('demo_turtle4'), UgvParameters('demo_turtle3')]
+        self.ugvs = [UgvParameters('turtle1'), UgvParameters('demo_turtle4'), UgvParameters('turtle3')]
         self.lenDrones = len(self.drones)
         self.lenUgvs = len(self.ugvs)
         self.rate = rospy.Rate(60)
-        self.droneModeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setDroneMode)
-        self.ugvModeSub = rospy.Subscriber('/ugv_modes', UgvInt8Array, self.setUgvMode)
+        self.droneUpdateModeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setDroneMode)
+        self.ugvUpdateModeSub = rospy.Subscriber('/ugv_modes', UgvInt8Array, self.setUgvMode)
 
         self.offsetW = [0.0, 0.0]
 
@@ -59,10 +62,13 @@ class CentralController:
 
         for ugv in self.ugvs:
             self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
-            self.ugvParamSub.append(rospy.Subscriber('/{}/params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
+            
+            # self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            self.ugvParamSub.append(rospy.Subscriber('/{}/update_params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
+            self.ugvModeSub.append(rospy.Subscriber('/{}/ugv_mode'.format(ugv.name), Int8, ugv.mode_cb))
             self.ugvRefPub.append(rospy.Publisher('/{}/ref'. format(ugv.name), UgvPosVelMsg, queue_size=10))
             self.ugvConsPub.append(rospy.Publisher('/{}/cons'. format(ugv.name), UgvConstraintMsg, queue_size=10))
-            self.ugvModePub.append(rospy.Publisher('/{}/ugv_mode'. format(ugv.name), Int8, queue_size=10))
+            self.ugvModePub.append(rospy.Publisher('/{}/update_ugv_mode'. format(ugv.name), Int8, queue_size=10))
 
 
         print('Sleeping')
