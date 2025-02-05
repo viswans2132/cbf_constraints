@@ -9,8 +9,10 @@ class DroneParameters(object):
     def __init__(self, name):    
         self.name = name
         self.pos = np.array([0.0, 0, 0])
+        self.desPos = np.array([0.0, 0, 0])
         self.desPos1 = np.array([0.0, 0, 0])
         self.desPos2 = np.array([0.0, 0, 0])
+        self.desVel = np.array([0.0, 0, 0])
         self.quat = np.array([0.0, 0, 0, 1])
         self.yaw = 0.0
         self.offsetAngle = 0.0
@@ -33,9 +35,9 @@ class DroneParameters(object):
         self.startTime = rospy.get_time()
 
         self.droneMode = 0
-        self.tasks = []
+        self.taskFlag = True
 
-        self.northBound = 1.5
+        self.maxBoundX = 1.5
         self.southBound = -1.5
         self.eastBound = -1.5
         self.westBound = -1.5
@@ -66,15 +68,22 @@ class DroneParameters(object):
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)
         self.omegaC = msg.omegaC
-        paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), DroneParamsMsg, queue_size=10)
-        paramsPublisher.publish(msg)
-        print('Parameters received: {}'.format(self.name))
+        self.paramsFlag =  True
+        # paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), DroneParamsMsg, queue_size=10)
+        # paramsPublisher.publish(msg)
+        # print('Parameters received: {}'.format(self.name))
 
 
     def land_cb(self, msg):
+        # if self.firstTask:
+        #     self.firstTask = False
+        #     self.secondTask = True
+        #     self.returnFlag = False
+        #     self.followFlag = True
+        #     self.landTime = rospy.get_time()
         if self.firstTask:
             self.firstTask = False
-            self.secondTask = True
+            self.taskFlag = False
             self.returnFlag = False
             self.followFlag = True
             self.landTime = rospy.get_time()
@@ -83,4 +92,13 @@ class DroneParameters(object):
 
     def mode_cb(self, msg):
         self.droneMode = msg.data
+
+
+    def updateBounds(self, bounds):
+        self.maxBoundX = bounds[0]
+        self.minBoundX = bounds[1]
+        self.maxBoundY = bounds[2]
+        self.minBoundY = bounds[3]
+        self.maxBoundZ = bounds[4]
+        self.minBoundZ = bounds[5]
 

@@ -43,7 +43,7 @@ class CentralController:
         self.t = rospy.get_time()
 
         self.drones = [DroneParameters('dcf6'), DroneParameters('dcf2'), DroneParameters('cf8')]
-        self.ugvs = [UgvParameters('turtle1'), UgvParameters('demo_turtle4'), UgvParameters('turtle3')]
+        self.ugvs = [UgvParameters('turtle1'), UgvParameters('turtle4'), UgvParameters('turtle3')]
         self.lenDrones = len(self.drones)
         self.lenUgvs = len(self.ugvs)
         self.rate = rospy.Rate(60)

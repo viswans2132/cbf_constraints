@@ -18,7 +18,8 @@ class UgvParameters(object):
 
         self.off = 0.1
 
-        self.desPos = np.array([2.0, 2.0, 0.0])
+        self.desPos = np.array([0.0, 0.0])
+        self.desVel = np.array([0.0, 0.0])
 
         self.kPos = np.array([-2.0, -2.0])
 
@@ -57,6 +58,7 @@ class UgvParameters(object):
 
         self.odomFlag = False
         self.constraintsReceived = False
+        self.paramsFlag = False
 
         self.followFlag = True
         self.returnFlag = False
@@ -64,10 +66,12 @@ class UgvParameters(object):
 
         self.ugvMode = 0
 
-        self.northBound = 1.5
-        self.southBound = -1.5
-        self.eastBound = -1.5
-        self.westBound = 1.5
+        self.maxBoundX = 1.5
+        self.minBoundX = -1.5
+        self.minBoundY = -1.5
+        self.maxBoundY = 1.5
+
+        self.setpoints = []
 
 
     def odom_cb(self, data):
@@ -110,12 +114,26 @@ class UgvParameters(object):
         self.omegaB = msg.omegaB
         self.omegaC = msg.omegaC
         self.omegaD = msg.omegaD
-
-        paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), UgvParamsMsg, queue_size=10)
-        paramsPublisher.publish(msg)
-        print('Parameters received: {}'.format(self.name))
+        self.paramsFlag =  True
 
 
+        # paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), UgvParamsMsg, queue_size=10)
+        # paramsPublisher.publish(msg)
+        # print('Parameters received: {}'.format(self.name))
 
     def mode_cb(self, msg):
         self.ugvMode = msg.data
+
+    def updateBounds(self, mapBounds):
+        self.maxBoundX = self.pos[0] + 1.5
+        self.minBoundX = self.pos[0] - 1.5
+        self.minBoundY = self.pos[1] - 1.5
+        self.maxBoundY = self.pos[1] + 1.5
+
+        self.maxBoundX = np.maximum(mapBounds[0], self.maxBoundX)
+        self.minBoundX = np.minimum(mapBounds[1], self.minBoundX)
+        self.maxBoundY = np.maximum(mapBounds[2], self.maxBoundY)
+        self.minBoundY = np.minimum(mapBounds[3], self.minBoundY)
+
+        self.setpoints = [0.1*np.arange((self.minBoundX+0.2)*10, (self.maxBoundX-0.1)*10), 
+                            0.1*np.arange((self.minBoundY+0.2)*10, (self.maxBoundY-0.1)*10)]
