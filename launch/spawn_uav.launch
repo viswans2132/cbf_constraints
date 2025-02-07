@@ -20,19 +20,8 @@
       <arg name="y" value="$(arg init_y)"/>
       <arg name="z" value="$(arg init_z)"/>
     </include>
-<!-- 
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
-     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
-      <rosparam command="load" file="$(find ss_workshop)/resources/vel_hummingbird.yaml" />
-      <rosparam command="load" file="$(find rotors_gazebo)/resource/hummingbird.yaml" />
-      <remap from="odom_msg" to="odometry_sensor1/odometry" />
-      <remap from="traj_msg" to="command/trajectory" />      
-    </node>
-    
-    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
-      <param name="uav_name" value="$(arg namespace)" />
-    </node> -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
   </group> 
 
 </launch>

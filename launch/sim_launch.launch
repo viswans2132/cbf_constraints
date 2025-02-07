@@ -1,0 +1,237 @@
+<launch>
+  <env name="GAZEBO_MODEL_PATH" value="${GAZEBO_MODEL_PATH}:$(find rotors_gazebo)/models"/>
+  <env name="GAZEBO_RESOURCE_PATH" value="${GAZEBO_RESOURCE_PATH}:$(find rotors_gazebo)/resource:$(find rotors_gazebo)/models:$(find rotors_gazebo)/models"/>
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find rotors_gazebo)/worlds/basic.world" />
+    <arg name="debug" value="false" />
+    <arg name="paused" value="true" />
+    <arg name="gui" value="true" />
+    <arg name="verbose" value="false"/>
+  </include>
+  <group ns="demo_turtle1">
+    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_waffle_pi.urdf.xacro" />
+    <param name="tf_prefix" value="demo_turtle1" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="demo_turtle1" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model demo_turtle1 -x -.50000000000000000000 -y -1.00000000000000000000 -z 0.0 -Y 0 -param robot_description" />
+  </group>
+
+  <group ns="dcf1">
+    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+      <arg name="namespace" value="dcf1"/>
+      <arg name="mav_name" value="hummingbird"/>
+      <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" />
+      <arg name="x" value="-1.50000000000000000000"/>
+      <arg name="y" value="-1.00000000000000000000"/>
+      <arg name="z" value="0.2"/>
+    </include>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  </group>
+
+  <group ns="demo_turtle1">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
+      <param name="ugv_name" value="demo_turtle1" />
+    </node>
+  </group> 
+  
+  <group ns="dcf1">
+     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
+      <rosparam command="load" file="$(find ss_workshop)/resources/vel_hummingbird.yaml" />
+      <rosparam command="load" file="$(find rotors_gazebo)/resource/hummingbird.yaml" />
+      <remap from="odom_msg" to="odometry_sensor1/odometry" />
+      <remap from="traj_msg" to="command/trajectory" />      
+    </node>
+    
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf1" />
+    </node>
+  </group> 
+  
+  <group ns="demo_turtle2">
+    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_waffle_pi.urdf.xacro" />
+    <param name="tf_prefix" value="demo_turtle2" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="demo_turtle2" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model demo_turtle2 -x 1.50000000000000000000 -y -1.00000000000000000000 -z 0.0 -Y 1.5708 -param robot_description" />
+  </group>
+
+  <group ns="dcf2">
+    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+      <arg name="namespace" value="dcf2"/>
+      <arg name="mav_name" value="hummingbird"/>
+      <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" />
+      <arg name="x" value=".50000000000000000000"/>
+      <arg name="y" value="-1.00000000000000000000"/>
+      <arg name="z" value="0.2"/>
+    </include>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  </group>
+
+  <group ns="demo_turtle2">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
+      <param name="ugv_name" value="demo_turtle2" />
+    </node>
+  </group> 
+  
+  <group ns="dcf2">
+     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
+      <rosparam command="load" file="$(find ss_workshop)/resources/vel_hummingbird.yaml" />
+      <rosparam command="load" file="$(find rotors_gazebo)/resource/hummingbird.yaml" />
+      <remap from="odom_msg" to="odometry_sensor1/odometry" />
+      <remap from="traj_msg" to="command/trajectory" />      
+    </node>
+    
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf2" />
+    </node>
+  </group> 
+  
+  <group ns="demo_turtle3">
+    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_waffle_pi.urdf.xacro" />
+    <param name="tf_prefix" value="demo_turtle3" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="demo_turtle3" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model demo_turtle3 -x -.50000000000000000000 -y 0 -z 0.0 -Y 3.1416 -param robot_description" />
+  </group>
+
+  <group ns="dcf3">
+    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+      <arg name="namespace" value="dcf3"/>
+      <arg name="mav_name" value="hummingbird"/>
+      <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" />
+      <arg name="x" value="-1.50000000000000000000"/>
+      <arg name="y" value="0"/>
+      <arg name="z" value="0.2"/>
+    </include>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  </group>
+
+  <group ns="demo_turtle3">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
+      <param name="ugv_name" value="demo_turtle3" />
+    </node>
+  </group> 
+  
+  <group ns="dcf3">
+     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
+      <rosparam command="load" file="$(find ss_workshop)/resources/vel_hummingbird.yaml" />
+      <rosparam command="load" file="$(find rotors_gazebo)/resource/hummingbird.yaml" />
+      <remap from="odom_msg" to="odometry_sensor1/odometry" />
+      <remap from="traj_msg" to="command/trajectory" />      
+    </node>
+    
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf3" />
+    </node>
+  </group> 
+  
+  <group ns="demo_turtle4">
+    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_waffle_pi.urdf.xacro" />
+    <param name="tf_prefix" value="demo_turtle4" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="demo_turtle4" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model demo_turtle4 -x 1.50000000000000000000 -y 0 -z 0.0 -Y 4.7124 -param robot_description" />
+  </group>
+
+  <group ns="dcf4">
+    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+      <arg name="namespace" value="dcf4"/>
+      <arg name="mav_name" value="hummingbird"/>
+      <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" />
+      <arg name="x" value=".50000000000000000000"/>
+      <arg name="y" value="0"/>
+      <arg name="z" value="0.2"/>
+    </include>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  </group>
+
+  <group ns="demo_turtle4">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
+      <param name="ugv_name" value="demo_turtle4" />
+    </node>
+  </group> 
+  
+  <group ns="dcf4">
+     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
+      <rosparam command="load" file="$(find ss_workshop)/resources/vel_hummingbird.yaml" />
+      <rosparam command="load" file="$(find rotors_gazebo)/resource/hummingbird.yaml" />
+      <remap from="odom_msg" to="odometry_sensor1/odometry" />
+      <remap from="traj_msg" to="command/trajectory" />      
+    </node>
+    
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf4" />
+    </node>
+  </group> 
+  
+  <group ns="demo_turtle5">
+    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_waffle_pi.urdf.xacro" />
+    <param name="tf_prefix" value="demo_turtle5" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="demo_turtle5" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model demo_turtle5 -x -.50000000000000000000 -y 1.00000000000000000000 -z 0.0 -Y 6.2832 -param robot_description" />
+  </group>
+
+  <group ns="dcf5">
+    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+      <arg name="namespace" value="dcf5"/>
+      <arg name="mav_name" value="hummingbird"/>
+      <arg name="model" value="$(find rotors_description)/urdf/mav_generic_odometry_sensor.gazebo" />
+      <arg name="x" value="-1.50000000000000000000"/>
+      <arg name="y" value="1.00000000000000000000"/>
+      <arg name="z" value="0.2"/>
+    </include>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  </group>
+
+  <group ns="demo_turtle5">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
+      <param name="ugv_name" value="demo_turtle5" />
+    </node>
+  </group> 
+  
+  <group ns="dcf5">
+     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
+      <rosparam command="load" file="$(find ss_workshop)/resources/vel_hummingbird.yaml" />
+      <rosparam command="load" file="$(find rotors_gazebo)/resource/hummingbird.yaml" />
+      <remap from="odom_msg" to="odometry_sensor1/odometry" />
+      <remap from="traj_msg" to="command/trajectory" />      
+    </node>
+    
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="dcf5" />
+    </node>
+  </group> 
+  
+  <node pkg="cbf_constraints" name="master_task_assigner" type="task_assigner.py" output="screen">
+    <param name="no_of_agents" value="5" />
+  </node>
+  <node pkg="cbf_constraints" name="master_constraint_updater" type="constraint_updater.py" output="screen">
+    <param name="no_of_agents" value="5" />
+  </node>
+</launch>

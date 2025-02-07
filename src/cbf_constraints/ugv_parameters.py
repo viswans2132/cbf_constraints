@@ -1,7 +1,7 @@
 import rospy
 import numpy as np
 from tf.transformations import euler_from_quaternion, quaternion_matrix
-from tb_cbf.msg import UgvParamsMsg
+from tb_cbf.msg import UgvParamsMsg, UgvPosVelMsg
 from nav_msgs.msg import Odometry
 
 class UgvParameters(object):
@@ -58,7 +58,7 @@ class UgvParameters(object):
 
         self.odomFlag = False
         self.constraintsReceived = False
-        self.paramsFlag = False
+        self.paramFlag = False
 
         self.followFlag = True
         self.returnFlag = False
@@ -114,7 +114,7 @@ class UgvParameters(object):
         self.omegaB = msg.omegaB
         self.omegaC = msg.omegaC
         self.omegaD = msg.omegaD
-        self.paramsFlag =  True
+        self.paramFlag =  True
 
 
         # paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), UgvParamsMsg, queue_size=10)
@@ -130,10 +130,17 @@ class UgvParameters(object):
         self.minBoundY = self.pos[1] - 1.5
         self.maxBoundY = self.pos[1] + 1.5
 
-        self.maxBoundX = np.maximum(mapBounds[0], self.maxBoundX)
-        self.minBoundX = np.minimum(mapBounds[1], self.minBoundX)
-        self.maxBoundY = np.maximum(mapBounds[2], self.maxBoundY)
-        self.minBoundY = np.minimum(mapBounds[3], self.minBoundY)
+        self.maxBoundX = np.minimum(mapBounds[0], self.maxBoundX)
+        self.minBoundX = np.maximum(mapBounds[1], self.minBoundX)
+        self.maxBoundY = np.minimum(mapBounds[2], self.maxBoundY)
+        self.minBoundY = np.maximum(mapBounds[3], self.minBoundY)
 
         self.setpoints = [0.1*np.arange((self.minBoundX+0.2)*10, (self.maxBoundX-0.1)*10), 
                             0.1*np.arange((self.minBoundY+0.2)*10, (self.maxBoundY-0.1)*10)]
+
+    def ref_cb(self, msg):
+        try:
+            self.desPos = np.array([msg.position[0], msg.position[1]])
+            self.desVel = np.array([msg.velocity[0], msg.velocity[1]])
+        except IndexError:
+            print('Ref msg empty: {}'.format(msg.position))

@@ -17,7 +17,20 @@ from cbf_constraints.drone_parameters import DroneParameters
 from cbf_constraints.ugv_parameters import UgvParameters
 
 
-class TaskAssigner():	
+class TaskAssigner():
+    droneLandSub = []
+    droneOdomSub = []
+    droneParamSub = []
+    droneModeSub = []
+    droneRefPub = []
+    droneConsPub = []
+    droneModePub = []
+    ugvOdomSub = []
+    ugvParamSub = []
+    ugvRefPub = []
+    ugvModeSub = []
+    ugvConsPub = []
+    ugvModePub = []	
     def __init__(self, name, no_agents):
         self.name = name
         self.filterFlag = False
@@ -32,7 +45,7 @@ class TaskAssigner():
         self.ugvs = []
 
         self.offset = [0.0, 0.0]        
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(30)
         self.droneUpdateModeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setDroneMode)
         self.ugvUpdateModeSub = rospy.Subscriber('/ugv_modes', UgvInt8Array, self.setUgvMode)
 
@@ -51,8 +64,8 @@ class TaskAssigner():
 
 
         for ugv in self.ugvs:
-            self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
-            # self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            # self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
             self.ugvModeSub.append(rospy.Subscriber('/{}/ugv_mode'.format(ugv.name), Int8, ugv.mode_cb))
             self.ugvRefPub.append(rospy.Publisher('/{}/ref'. format(ugv.name), UgvPosVelMsg, queue_size=10))
             self.ugvModePub.append(rospy.Publisher('/{}/update_ugv_mode'. format(ugv.name), Int8, queue_size=10))
@@ -69,45 +82,78 @@ class TaskAssigner():
         for i in range(self.no_agents):
             ugv = self.ugvs[i]
             drone = self.drones[i]
-        	while not ugv.odomFlag:
-        		self.rate.sleep()
+            rospy.loginfo(f'[task_assigner]: Checking odometry for {ugv.name}', logger_name="task_assigner")
+            try:
+                print(f'Hello')
+                while not ugv.odomFlag:
+                    if rospy.is_shutdown():
+                        raise SystemError('Node is Shutdown')
+                    self.rate.sleep()
+            except SystemError:
+                print(f'{self.name} is shut down by KeyboardInterrupt.')
+                break
+            rospy.loginfo(f'[task_assigner]: Received odometry for {ugv.name}', logger_name="task_assigner")
             ugv.updateBounds([maxBoundX, minBoundX, maxBoundY, minBoundY])
-            self.updateUgvSetpoint(ugv)
+            self.updateUgvSetpoint(i)
+            rospy.loginfo(f'[task_assigner]: Updating setpoints for {ugv.name}', logger_name="task_assigner")
 
-            while not drone.odomFlag:
-                self.rate.sleep()
+            rospy.loginfo(f'[task_assigner]: Checking odometry for {drone.name}', logger_name="task_assigner")
+            try:
+                while not drone.odomFlag:
+                    if rospy.is_shutdown():
+                        raise SystemError('Node is Shutdown')
+                    self.rate.sleep()
+                    rospy.loginfo('Waiting.')
+            except SystemError:
+                print(f'{self.name} is shut down by KeyboardInterrupt.')
+                break
 
             drone.updateBounds([maxBoundX, minBoundX, maxBoundY, minBoundY, maxBoundZ, minBoundZ])
+            rospy.loginfo(f'[task_assigner]: Received odometry for {drone.name}', logger_name="task_assigner")
 
-            self.updateDroneSetpoint(self, drone)
+            rospy.loginfo(f'[task_assigner]: Updating the setpoints for {drone.name}', logger_name="task_assigner")
+            self.updateDroneSetpoint(i)
 
-            while(drone.droneMode != 1):
-                self.publishDroneMode(i,1)
-                self.rate.sleep()
+            rospy.loginfo(f'[task_assigner]: Changing the mode for {drone.name}', logger_name="task_assigner")
+            try:
+                while(drone.droneMode != 1):
+                    if rospy.is_shutdown():
+                        raise SystemError('Node is Shutdown')
+                    self.publishDroneMode(i,1)
+                    self.rate.sleep()
+            except SystemError:
+                print('Node is shut down by KeyboardInterrupt')
+            rospy.loginfo(f'[task_assigner]: Mode is changed for {drone.name}', logger_name="task_assigner")
 
-            while(ugv.ugvMode !=1):
-                self.publishUgvMode(i,1)
-                self.rate.sleep()
+            rospy.loginfo(f'[task_assigner]: Changing the mode for {ugv.name}', logger_name="task_assigner")
+            try:
+                while(ugv.ugvMode != 1):
+                    if rospy.is_shutdown():
+                        raise SystemError('Node is Shutdown')
+                    self.publishUgvMode(i,1)
+                    self.rate.sleep()
+            except SystemError:
+                print('Node is shut down by KeyboardInterrupt')
+            rospy.loginfo(f'[task_assigner]: Mode is changed for {ugv.name}', logger_name="task_assigner")
 
 
-        try:
-            while not rospy.is_shutdown():
-                self.loop()
-                self.rate.sleep()
-        except KeyboardInterrupt:
-            rospy.loginfo('Shutting down the node.')
+        while not rospy.is_shutdown():
+            # rospy.loginfo(f'[task_assigner]: Publishing in the loop', logger_name="task_assigner")
+            self.loop()
+            self.rate.sleep()
 
 
     def updateUgvSetpoint(self, index):
         ugv = self.ugvs[index]
-        ugv.desPos = np.array([ugv.setpoints[0][np.random.randint(len(ugv.setpoints[0])) + self.offset[0]], 
-                                ugv.setpoints[1][np.random.randint(len(ugv.setpoints[1])) + self.offset[1]]])
+        ugv.desPos = np.array([ugv.setpoints[0][np.random.randint(len(ugv.setpoints[0]))] + self.offset[0], 
+                                ugv.setpoints[1][np.random.randint(len(ugv.setpoints[1]))] + self.offset[1]])
         ugv.desVel = np.array([0.0, 0.0])
 
     def updateDroneSetpoint(self, index):
         drone = self.drones[index]
         ugv = self.ugvs[index]        
         if drone.returnFlag:
+            # rospy.loginfo(f'[task_assigner]: {ugv.name} returning to target', logger_name="task_assigner")
             drone.desPos = np.array([ugv.pos[0], ugv.pos[1], ugv.pos[2]])
             drone.desVel = np.array([ugv.vel[0], ugv.vel[1], ugv.vel[2]])
         else:
@@ -142,12 +188,12 @@ class TaskAssigner():
         ugvModeMsg.data = mode
         self.ugvModePub[index].publish(ugvModeMsg)
 
-        def setDroneMode(self, msg):
+    def setDroneMode(self, msg):
         if len(msg.data) != len(self.droneModePub):
-            print("Invalid number of values in the msg. Currently, there are {} drones active.".format(self.lenDrones))
+            print("Invalid number of values in the msg. Currently, there are {} drones active.".format(self.no_agents))
         else:
             if self.filterFlag == False:
-                for i in range(self.lenUgvs):
+                for i in range(self.no_agents):
                     modeMsg = Int8()
                     modeMsg.data = 1
                     self.ugvModePub[i].publish(modeMsg)
@@ -174,7 +220,7 @@ class TaskAssigner():
     
     def setUgvMode(self, msg):
         if len(msg.data) != len(self.ugvModePub):
-            print("Invalid number of values in the msg. Currently, there are {} ugvs active.".format(self.lenUgvs))
+            print("Invalid number of values in the msg. Currently, there are {} ugvs active.".format(self.no_agents))
         else:
             for i in range(self.no_agents):
                 ugvModeMsg = Int8()
@@ -184,31 +230,41 @@ class TaskAssigner():
 
     def loop(self):
         for i in range(self.no_agents):
-            drone = self.drones[no_agents]
-            ugv = self.uavs[no_agents]
+            drone = self.drones[i]
+            ugv = self.ugvs[i]
             if drone.returnFlag:
                 self.updateDroneSetpoint(i)
                 ugvPosErr = drone.pos - ugv.pos
                 ugvVelErr = drone.vel - ugv.vel
-                if la.norm(ugvPosErr[:2]) < 0.0009 and ugvPosErr[2] < 0.04 and la.norm(ugvVelErr) < 0.2:
-                    if drone.droneMode != 0:
+                # if i == 0:
+                    # print('---')
+                    # rospy.loginfo(f'[task_assigner]: {drone.name} Pos: {drone.pos[0]:.2f}: {ugv.pos[0]:.2f}: {drone.pos[1]:.2f}: {ugv.pos[1]:.2f} ')
+                    # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
+                if la.norm(ugvPosErr[:2]) < 0.03 and ugvPosErr[2] < 0.04 and la.norm(ugvVelErr) < 0.2:
+                    if drone.droneMode != 2:
                         self.publishDroneMode(i,2)
 
             else:
-                droneErr = drone.pos - drone.desPos
-                if la.norm(droneErr) < 0.1:
-                    drone.returnFlag =  True
-                    self.rate.sleep()
+                if not drone.taskFlag:
+                    self.updateDroneSetpoint(i)
+                    drone.taskFlag = True
+                else:
+                    droneErr = drone.pos - drone.desPos
+                    if la.norm(droneErr) < 0.1:
+                        drone.returnFlag =  True
+                        self.rate.sleep()
 
-                if not firstTask:
-                    if (rospy.get_time() - drone.landTime) > 5.0:
-                        if drone.droneMode != 0:
-                            self.publishDroneMode(i,0)
+                    if not drone.firstTask:
+                        if (rospy.get_time() - drone.landTime) > 5.0:
+                            if drone.droneMode != 0:
+                                self.publishDroneMode(i,0)
 
 
             self.publishDroneRef(i)
 
-            ugvErr = ugv.pos - ugv.desPos
+            ugvErr = ugv.pos[:2] - ugv.desPos
+            # print('---')
+            # print('---')
             if la.norm(ugvErr) < 0.1:
                 self.updateUgvSetpoint(i)
 

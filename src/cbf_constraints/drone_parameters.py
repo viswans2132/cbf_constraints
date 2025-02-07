@@ -1,7 +1,7 @@
 import rospy
 import numpy as np
 from tf.transformations import euler_from_quaternion, quaternion_matrix
-from cf_cbf.msg import DroneParamsMsg
+from cf_cbf.msg import DroneParamsMsg, DronePosVelMsg
 from nav_msgs.msg import Odometry
 
 class DroneParameters(object):
@@ -35,7 +35,8 @@ class DroneParameters(object):
         self.startTime = rospy.get_time()
 
         self.droneMode = 0
-        self.taskFlag = True
+        self.taskFlag = False
+        self.paramFlag = False
 
         self.maxBoundX = 1.5
         self.southBound = -1.5
@@ -68,7 +69,7 @@ class DroneParameters(object):
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)
         self.omegaC = msg.omegaC
-        self.paramsFlag =  True
+        self.paramFlag =  True
         # paramsPublisher = rospy.Publisher('/{}/params'.format(self.name), DroneParamsMsg, queue_size=10)
         # paramsPublisher.publish(msg)
         # print('Parameters received: {}'.format(self.name))
@@ -102,3 +103,10 @@ class DroneParameters(object):
         self.maxBoundZ = bounds[4]
         self.minBoundZ = bounds[5]
 
+    def ref_cb(self, msg):        
+        # print(msg.position)
+        try:
+            self.desPos = np.array([msg.position[0], msg.position[1], msg.position[2]])
+            self.desVel = np.array([msg.velocity[0], msg.velocity[1], msg.velocity[2]])
+        except IndexError:
+            print('Ref msg empty: {}'.format(msg.position))

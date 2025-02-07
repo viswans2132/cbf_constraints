@@ -164,7 +164,9 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  src/py_node/master_cmd_node.py src/py_node/master_tb_node.py src/py_node/master_cf_tb_node.py src/py_node/master_cf_tb_sim.py src/py_node/tro_master_cf_tb.py src/py_node/tro_master_cf_tb_sim.py
+  src/py_node/master_cmd_node.py src/py_node/master_tb_node.py src/py_node/master_cf_tb_node.py 
+  src/py_node/master_cf_tb_sim.py src/py_node/tro_master_cf_tb.py src/py_node/tro_master_cf_tb_sim.py
+  src/py_node/task_assigner.py src/py_node/constraint_updater.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -103,8 +103,7 @@ else
 launch_file="sim_launch.launch"
 echo "<launch>" > $launch_file
 cat <<EOL >> $launch_file
-
-   <env name="GAZEBO_MODEL_PATH" value="\${GAZEBO_MODEL_PATH}:\$(find rotors_gazebo)/models"/>
+  <env name="GAZEBO_MODEL_PATH" value="\${GAZEBO_MODEL_PATH}:\$(find rotors_gazebo)/models"/>
   <env name="GAZEBO_RESOURCE_PATH" value="\${GAZEBO_RESOURCE_PATH}:\$(find rotors_gazebo)/resource:\$(find rotors_gazebo)/models:\$(find rotors_gazebo)/models"/>
   <include file="\$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="\$(find rotors_gazebo)/worlds/basic.world" />
@@ -150,12 +149,42 @@ for ((i=0; i<pairs; i++)); do
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
   </group>
+
+  <group ns="$ns_g">
+    <node pkg="tb_cbf" name="ugv_node" type="dis_ugv_node_sim.py" output="screen">
+      <param name="ugv_name" value="$ns_g" />
+    </node>
+  </group> 
+  
+  <group ns="$ns_d">
+     <node name="position_controller_node" pkg="ss_workshop" type="ss_vel_node" output="screen">      
+      <rosparam command="load" file="\$(find ss_workshop)/resources/vel_hummingbird.yaml" />
+      <rosparam command="load" file="\$(find rotors_gazebo)/resource/hummingbird.yaml" />
+      <remap from="odom_msg" to="odometry_sensor1/odometry" />
+      <remap from="traj_msg" to="command/trajectory" />      
+    </node>
+    
+    <node pkg="cf_cbf" name="drone_node" type="dis_drone_node_sim.py" output="screen">
+      <param name="uav_name" value="$ns_d" />
+    </node>
+  </group> 
   
 EOL
 done
 
+cat <<EOL >> $launch_file
+  <node pkg="cbf_constraints" name="master_task_assigner" type="task_assigner.py" output="screen">
+    <param name="no_of_agents" value="$pairs" />
+  </node>
+  <node pkg="cbf_constraints" name="master_constraint_updater" type="constraint_updater.py" output="screen">
+    <param name="no_of_agents" value="$pairs" />
+  </node>
+EOL
+
 echo "</launch>" >> $launch_file
 
 echo "Launch file $launch_file created successfully."
+
+roslaunch cbf_constraints sim_launch.launch
 
 fi

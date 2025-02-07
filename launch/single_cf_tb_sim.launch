@@ -185,7 +185,10 @@
       <param name="ugv_name" value="demo_turtle3" />
     </node>
   </group> 
-  <node pkg="cbf_constraints" name="master_cf_tb_node" type="tro_master_cf_tb_sim.py" output="screen">
+  <node pkg="cbf_constraints" name="master_task_assigner" type="task_assigner.py" output="screen">
+    <param name="no_of_agents" value="3" />
+  </node>
+  <node pkg="cbf_constraints" name="master_constraint_updater" type="constraint_updater.py" output="screen">
     <param name="no_of_agents" value="3" />
   </node>
 <!-- 
