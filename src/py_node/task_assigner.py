@@ -190,7 +190,41 @@ class TaskAssigner():
 
     def setDroneMode(self, msg):
         if len(msg.data) != len(self.droneModePub):
-            print("Invalid number of values in the msg. Currently, there are {} drones active.".format(self.no_agents))
+            if len(msg.data) != 1:
+                print("Invalid number of values in the msg. Currently, there are {} drones active.".format(self.no_agents))
+            else:
+                data = msg.data
+                print(data[0])
+                if self.filterFlag == False:
+                    for i in range(self.no_agents):
+                        modeMsg = Int8()
+                        modeMsg.data = 1
+                        self.ugvModePub[i].publish(modeMsg)
+                    print('Filter Active')
+                    self.filterFlag = True
+                    self.t = rospy.get_time()
+
+
+                for i in range(self.no_agents):
+                    droneModeMsg = Int8()
+                    if data[0] == 0 or data[0] == 2:
+                        droneModeMsg.data = data[0]
+                        self.droneModePub[i].publish(droneModeMsg)
+                        self.drones[i].returnFlag = False
+
+                    elif data[0] == 1:
+                        droneModeMsg.data = 0
+                        self.droneModePub.publish(droneModeMsg)
+                        self.drones.returnFlag = True
+                        print('Return Flag On')
+
+                    else:
+                        print("Invalid mode {} for drone {}. Available modes: 0 - Follow Trajectory, 1 - Return and Land, and 2 - Safety Land".format(msg.data, self.drones[i].name))
+                self.rate.sleep()
+
+
+
+
         else:
             if self.filterFlag == False:
                 for i in range(self.no_agents):
@@ -217,6 +251,8 @@ class TaskAssigner():
 
                 else:
                     print("Invalid mode for drone {}. Available modes: 0 - Follow Trajectory, 1 - Return and Land, and 2 - Safety Land".format(self.drones[i].name))
+            self.rate.sleep()
+
     
     def setUgvMode(self, msg):
         if len(msg.data) != len(self.ugvModePub):
@@ -226,6 +262,8 @@ class TaskAssigner():
                 ugvModeMsg = Int8()
                 ugvModeMsg.data = msg.data[i]
                 self.ugvModePub[i].publish(ugvModeMsg)
+            self.rate.sleep()
+            
 
 
     def loop(self):
