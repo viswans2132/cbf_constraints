@@ -49,24 +49,24 @@ class ConstraintUpdater:
             sq_no = sq_no + 1
 
 
-        self.offsetW = [0.12, 3.65]
+        self.offsetW = [0.0, -0.0]
 
         self.t = rospy.get_time()
-        self.drones = [DroneParameters('dcf2'), DroneParameters('dcf6'), DroneParameters('cf8')]
-        self.ugvs = [UgvParameters('tb1'), UgvParameters('tb3'), UgvParameters('tb4')]
+        self.drones = []
+        self.ugvs = []
 
-        # for i in range(no_agents):
-        #     drone_name = 'dcf' + str(i+1)
-        #     ugv_name = 'demo_turtle' + str(i+1)
-        #     self.drones.append(DroneParameters(drone_name))
-        #     self.ugvs.append(UgvParameters(ugv_name))
+        for i in range(no_agents):
+            drone_name = 'dcf' + str(i+1)
+            ugv_name = 'demo_turtle' + str(i+1)
+            self.drones.append(DroneParameters(drone_name))
+            self.ugvs.append(UgvParameters(ugv_name))
 
         self.droneUpdateModeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setFilter)
         self.rate = rospy.Rate(60)
 
 
         for drone in self.drones:
-            self.droneOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(drone.name, drone.name), Odometry, drone.odom_cb))
+            self.droneOdomSub.append(rospy.Subscriber('/{}/odometry_sensor1/odometry'.format(drone.name), Odometry, drone.odom_cb))
             self.droneParamSub.append(rospy.Subscriber('/{}/update_params'.format(drone.name), DroneParamsMsg, drone.params_cb))
             self.droneRefSub.append(rospy.Subscriber('/{}/ref'.format(drone.name), DronePosVelMsg, drone.ref_cb))
             self.droneParamPub.append(rospy.Publisher('/{}/params'.format(drone.name), DroneParamsMsg, queue_size=10))
@@ -74,8 +74,8 @@ class ConstraintUpdater:
 
 
         for ugv in self.ugvs:
-            self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
-            # self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            # self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
             self.ugvParamSub.append(rospy.Subscriber('/{}/update_params'.format(ugv.name), UgvParamsMsg, ugv.params_cb))
             self.ugvRefSub.append(rospy.Subscriber('/{}/ref'. format(ugv.name), UgvPosVelMsg, ugv.ref_cb))
             self.ugvConsPub.append(rospy.Publisher('/{}/cons'. format(ugv.name), UgvConstraintMsg, queue_size=10))
@@ -87,11 +87,11 @@ class ConstraintUpdater:
         print('Awake')
 
 
-        maxBoundX = (sq_no*0.5 + 1.5)/2.5
+        maxBoundX = sq_no*0.5 + 1.5
         minBoundX = -maxBoundX
         minBoundY = -maxBoundX
         maxBoundY = maxBoundX
-        maxBoundZ = 1.5
+        maxBoundZ = 2.0
         minBoundZ = 0.0
 
         self.droneSetpoints = 0.1*np.arange(0,27) - 1.3
@@ -223,7 +223,7 @@ class ConstraintUpdater:
         ugvErrPos = ugvI.posOff - ugvK.posOff
         if la.norm(ugvErrPos) < 2.0:            
             sqHorDist = sq_dist(ugvI.pos[:2] - ugvK.pos[:2], np.array([1,1]))
-            rad = ugvI.kRad + ugvI.off
+            rad = ugvI.kRad + 2*ugvI.off
             h = sqHorDist - rad*rad
             self.C_[i] = np.vstack((self.C_[i], np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
             self.C_[k] = np.vstack((self.C_[k], -np.array([2*ugvErrPos[0], 2*ugvErrPos[1]])))
@@ -318,8 +318,7 @@ class ConstraintUpdater:
 if __name__ == '__main__':
      try:
         rospy.init_node('constraint_updater', anonymous=True)
-        # no_agents = int(rospy.get_param('~no_of_agents'))
-        no_agents = 3
+        no_agents = int(rospy.get_param('~no_of_agents'))
 
         dc = ConstraintUpdater('constraint_updater', no_agents)
      except rospy.ROSInterruptException:

@@ -41,22 +41,22 @@ class TaskAssigner():
         	sq_no = sq_no + 1
 
         self.t = rospy.get_time()
-        self.drones = [DroneParameters('dcf2'), DroneParameters('dcf6'), DroneParameters('cf8')]
-        self.ugvs = [UgvParameters('tb1'), UgvParameters('tb3'), UgvParameters('tb4')]
+        self.drones = []
+        self.ugvs = []
 
-        self.offset = [0.12, 3.65]    
+        self.offset = [0.0, 0.0]        
         self.rate = rospy.Rate(30)
         self.droneUpdateModeSub = rospy.Subscriber('/uav_modes', DroneInt8Array, self.setDroneMode)
         self.ugvUpdateModeSub = rospy.Subscriber('/ugv_modes', UgvInt8Array, self.setUgvMode)
 
-        # for i in range(self.no_agents):
-        #     drone_name = 'dcf' + str(i+1)
-        #     ugv_name = 'demo_turtle' + str(i+1)
-        #     self.drones.append(DroneParameters(drone_name))
-        #     self.ugvs.append(UgvParameters(ugv_name))
+        for i in range(self.no_agents):
+            drone_name = 'dcf' + str(i+1)
+            ugv_name = 'demo_turtle' + str(i+1)
+            self.drones.append(DroneParameters(drone_name))
+            self.ugvs.append(UgvParameters(ugv_name))
 
         for drone in self.drones:
-            self.droneOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(drone.name,drone.name), Odometry, drone.odom_cb))
+            self.droneOdomSub.append(rospy.Subscriber('/{}/odometry_sensor1/odometry'.format(drone.name), Odometry, drone.odom_cb))
             self.droneLandSub.append(rospy.Subscriber('/{}/land_signal'.format(drone.name), Int8, drone.land_cb))
             self.droneModeSub.append(rospy.Subscriber('/{}/uav_mode'.format(drone.name), Int8, drone.mode_cb))
             self.droneRefPub.append(rospy.Publisher('/{}/ref'.format(drone.name), DronePosVelMsg, queue_size=10))
@@ -64,16 +64,17 @@ class TaskAssigner():
 
 
         for ugv in self.ugvs:
-            self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            # self.ugvOdomSub.append(rospy.Subscriber('/vicon/{}/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
+            self.ugvOdomSub.append(rospy.Subscriber('/{}/odom'.format(ugv.name, ugv.name), Odometry, ugv.odom_cb))
             self.ugvModeSub.append(rospy.Subscriber('/{}/ugv_mode'.format(ugv.name), Int8, ugv.mode_cb))
             self.ugvRefPub.append(rospy.Publisher('/{}/ref'. format(ugv.name), UgvPosVelMsg, queue_size=10))
             self.ugvModePub.append(rospy.Publisher('/{}/update_ugv_mode'. format(ugv.name), Int8, queue_size=10))
 
-        maxBoundX = (sq_no*0.5 + 1.5)/2.5
+        maxBoundX = sq_no*0.5 + 1.5
         minBoundX = -maxBoundX
         minBoundY = -maxBoundX
         maxBoundY = maxBoundX
-        maxBoundZ = 1.5
+        maxBoundZ = 2.0
         minBoundZ = 0.0
 
         self.droneSetpoints = 0.1*np.arange(0,27) - 1.3
@@ -213,8 +214,8 @@ class TaskAssigner():
 
                     elif data[0] == 1:
                         droneModeMsg.data = 0
-                        self.droneModePub[i].publish(droneModeMsg)
-                        # self.drones.returnFlag = True
+                        self.droneModePub.publish(droneModeMsg)
+                        self.drones.returnFlag = True
                         print('Return Flag On')
 
                     else:
@@ -277,7 +278,7 @@ class TaskAssigner():
                     # print('---')
                     # rospy.loginfo(f'[task_assigner]: {drone.name} Pos: {drone.pos[0]:.2f}: {ugv.pos[0]:.2f}: {drone.pos[1]:.2f}: {ugv.pos[1]:.2f} ')
                     # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
-                if la.norm(ugvPosErr[:2]) < 0.02 and ugvPosErr[2] < 0.04 and la.norm(ugvVelErr) < 0.1:
+                if la.norm(ugvPosErr[:2]) < 0.03 and ugvPosErr[2] < 0.04 and la.norm(ugvVelErr) < 0.2:
                     if drone.droneMode != 2:
                         self.publishDroneMode(i,2)
 
@@ -311,8 +312,7 @@ class TaskAssigner():
 if __name__ == '__main__':
      try:
         rospy.init_node('task_assigner', anonymous=True)
-        # no_agents = int(rospy.get_param('~no_of_agents'))
-        no_agents = 3
+        no_agents = int(rospy.get_param('~no_of_agents'))
 
         dc = TaskAssigner('task_assigner', no_agents)
      except rospy.ROSInterruptException:
