@@ -278,7 +278,7 @@ class TaskAssigner():
                     # print('---')
                     # rospy.loginfo(f'[task_assigner]: {drone.name} Pos: {drone.pos[0]:.2f}: {ugv.pos[0]:.2f}: {drone.pos[1]:.2f}: {ugv.pos[1]:.2f} ')
                     # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
-                if la.norm(ugvPosErr[:2]) < 0.028 and ugvPosErr[2] < 0.05 and la.norm(ugvVelErr) < 0.08:
+                if la.norm(ugvPosErr[:2]) < 0.028 and ugvPosErr[2] < 0.07 and la.norm(ugvVelErr) < 0.06:
                     if drone.droneMode != 2:
                         self.publishDroneMode(i,2)
 
