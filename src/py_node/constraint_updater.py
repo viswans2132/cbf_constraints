@@ -87,11 +87,12 @@ class ConstraintUpdater:
         print('Awake')
 
 
-        maxBoundX = (sq_no*0.5 + 1.5)/2.5
+        # maxBoundX = (sq_no*0.5 + 1.5)/2.5
+        maxBoundX = 1.2
         minBoundX = -maxBoundX
         minBoundY = -maxBoundX
         maxBoundY = maxBoundX
-        maxBoundZ = 1.5
+        maxBoundZ = 1.2
         minBoundZ = 0.0
 
         self.droneSetpoints = 0.1*np.arange(0,27) - 1.3
@@ -211,7 +212,8 @@ class ConstraintUpdater:
         dhdx = 2*ugvI.kRate*ugvI.kScaleD*(ugvI.kRate*sqHorDist - 1)*np.exp(-ugvI.kRate*sqHorDist)*ugvErrPos[0]
         dhdy = 2*ugvI.kRate*ugvI.kScaleD*(ugvI.kRate*sqHorDist - 1)*np.exp(-ugvI.kRate*sqHorDist)*ugvErrPos[1]
         dhdz = 1
-        dhdt = 2*ugvI.kRate*ugvI.kScaleD*(1 - ugvI.kRate)*np.exp(-ugvI.kRate*sqHorDist)*(ugvErrPos[0]*ugvI.vel[0] + ugvErrPos[1]*ugvI.vel[1])
+        # dhdt = 2*ugvI.kRate*ugvI.kScaleD*(1 - ugvI.kRate)*np.exp(-ugvI.kRate*sqHorDist)*(ugvErrPos[0]*ugvI.vel[0] + ugvErrPos[1]*ugvI.vel[1])
+        dhdt = 0.0
 
         self.A_[i] = np.vstack((self.A_[i], np.array([dhdx,dhdy, dhdz])))
         self.b_[i] = np.vstack((self.b_[i], - ugvI.omegaD*h - dhdt))

@@ -69,11 +69,12 @@ class TaskAssigner():
             self.ugvRefPub.append(rospy.Publisher('/{}/ref'. format(ugv.name), UgvPosVelMsg, queue_size=10))
             self.ugvModePub.append(rospy.Publisher('/{}/update_ugv_mode'. format(ugv.name), Int8, queue_size=10))
 
-        maxBoundX = (sq_no*0.5 + 1.5)/2.5
+        # maxBoundX = (sq_no*0.5 + 1.5)/2.5
+        maxBoundX = 1.2
         minBoundX = -maxBoundX
         minBoundY = -maxBoundX
         maxBoundY = maxBoundX
-        maxBoundZ = 1.5
+        maxBoundZ = 1.2
         minBoundZ = 0.0
 
         self.droneSetpoints = 0.1*np.arange(0,27) - 1.3
@@ -277,7 +278,7 @@ class TaskAssigner():
                     # print('---')
                     # rospy.loginfo(f'[task_assigner]: {drone.name} Pos: {drone.pos[0]:.2f}: {ugv.pos[0]:.2f}: {drone.pos[1]:.2f}: {ugv.pos[1]:.2f} ')
                     # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
-                if la.norm(ugvPosErr[:2]) < 0.02 and ugvPosErr[2] < 0.04 and la.norm(ugvVelErr) < 0.1:
+                if la.norm(ugvPosErr[:2]) < 0.028 and ugvPosErr[2] < 0.05 and la.norm(ugvVelErr) < 0.08:
                     if drone.droneMode != 2:
                         self.publishDroneMode(i,2)
 
