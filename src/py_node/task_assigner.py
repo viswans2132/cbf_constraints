@@ -34,6 +34,7 @@ class TaskAssigner():
     def __init__(self, name, no_agents):
         self.name = name
         self.filterFlag = False
+        self.emerStop = False
         self.no_agents = no_agents
 
         sq_no = 2
@@ -211,6 +212,8 @@ class TaskAssigner():
                         droneModeMsg.data = data[0]
                         self.droneModePub[i].publish(droneModeMsg)
                         self.drones[i].returnFlag = False
+                        if data[0] == 2:
+                            self.emerStop = True
 
                     elif data[0] == 1:
                         droneModeMsg.data = 0
@@ -270,43 +273,47 @@ class TaskAssigner():
         for i in range(self.no_agents):
             drone = self.drones[i]
             ugv = self.ugvs[i]
-            if drone.returnFlag:
-                self.updateDroneSetpoint(i)
-                ugvPosErr = drone.pos - ugv.pos
-                ugvVelErr = drone.vel - ugv.vel
-                # if i == 0:
-                    # print('---')
-                    # rospy.loginfo(f'[task_assigner]: {drone.name} Pos: {drone.pos[0]:.2f}: {ugv.pos[0]:.2f}: {drone.pos[1]:.2f}: {ugv.pos[1]:.2f} ')
-                    # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
-                if la.norm(ugvPosErr[:2]) < 0.028 and ugvPosErr[2] < 0.07 and la.norm(ugvVelErr) < 0.06:
-                    if drone.droneMode != 2:
-                        self.publishDroneMode(i,2)
-
+            if self.emerStop:
+                self.publishDroneMode(i,2)
+                self.publishUgvMode(i,2)
             else:
-                if not drone.taskFlag:
+                if drone.returnFlag:
                     self.updateDroneSetpoint(i)
-                    drone.taskFlag = True
+                    ugvPosErr = drone.pos - ugv.pos
+                    ugvVelErr = drone.vel - ugv.vel
+                    # if i == 0:
+                        # print('---')
+                        # rospy.loginfo(f'[task_assigner]: {drone.name} Pos: {drone.pos[0]:.2f}: {ugv.pos[0]:.2f}: {drone.pos[1]:.2f}: {ugv.pos[1]:.2f} ')
+                        # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
+                    if la.norm(ugvPosErr[:2]) < 0.028 and ugvPosErr[2] < 0.07 and la.norm(ugvVelErr) < 0.06:
+                        if drone.droneMode != 2:
+                            self.publishDroneMode(i,2)
+
                 else:
-                    droneErr = drone.pos - drone.desPos
-                    if la.norm(droneErr) < 0.1:
-                        drone.returnFlag =  True
-                        self.rate.sleep()
+                    if not drone.taskFlag:
+                        self.updateDroneSetpoint(i)
+                        drone.taskFlag = True
+                    else:
+                        droneErr = drone.pos - drone.desPos
+                        if la.norm(droneErr) < 0.1:
+                            drone.returnFlag =  True
+                            self.rate.sleep()
 
-                    if not drone.firstTask:
-                        if (rospy.get_time() - drone.landTime) > 5.0:
-                            if drone.droneMode != 0:
-                                self.publishDroneMode(i,0)
+                        if not drone.firstTask:
+                            if (rospy.get_time() - drone.landTime) > 5.0:
+                                if drone.droneMode != 0:
+                                    self.publishDroneMode(i,0)
 
 
-            self.publishDroneRef(i)
+                self.publishDroneRef(i)
 
-            ugvErr = ugv.pos[:2] - ugv.desPos
-            # print('---')
-            # print('---')
-            if la.norm(ugvErr) < 0.1:
-                self.updateUgvSetpoint(i)
+                ugvErr = ugv.pos[:2] - ugv.desPos
+                # print('---')
+                # print('---')
+                if la.norm(ugvErr) < 0.1:
+                    self.updateUgvSetpoint(i)
 
-            self.publishUgvRef(i)
+                self.publishUgvRef(i)
 
 
 if __name__ == '__main__':
