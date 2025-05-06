@@ -77,7 +77,7 @@ class UgvParameters(object):
     def odom_cb(self, data):
         self.pos[0] = float(data.pose.pose.position.x)
         self.pos[1] = float(data.pose.pose.position.y) 
-        self.pos[2] = float(data.pose.pose.position.z) + 0.06
+        self.pos[2] = float(data.pose.pose.position.z) + 0.02
         self.quat[0] = float(data.pose.pose.orientation.x)
         self.quat[1] = float(data.pose.pose.orientation.y)
         self.quat[2] = float(data.pose.pose.orientation.z)
@@ -92,9 +92,9 @@ class UgvParameters(object):
         self.posOff[0] = self.pos[0] + np.cos(self.yaw)*self.off
         self.posOff[1] = self.pos[1] + np.sin(self.yaw)*self.off
 
-        # self.pos[0] = self.pos[0] - 0.07*np.cos(self.yaw)
-        # self.pos[1] = self.pos[1] - 0.07*np.sin(self.yaw)
-        # self.pos[2] = self.pos[2] + 0.25
+        self.pos[0] = self.pos[0] - 0.07*np.cos(self.yaw)
+        self.pos[1] = self.pos[1] - 0.07*np.sin(self.yaw)
+        self.pos[2] = self.pos[2] + 0.25
 
         velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y])
         self.vel[:2] = self.R.T.dot(velocity)
@@ -130,15 +130,10 @@ class UgvParameters(object):
         self.minBoundY = self.pos[1] - 1.5
         self.maxBoundY = self.pos[1] + 1.5
 
-        # self.maxBoundX = np.minimum(mapBounds[0], self.maxBoundX)
-        # self.minBoundX = np.maximum(mapBounds[1], self.minBoundX)
-        # self.maxBoundY = np.minimum(mapBounds[2], self.maxBoundY)
-        # self.minBoundY = np.maximum(mapBounds[3], self.minBoundY)
-
-        self.maxBoundX = mapBounds[0]
-        self.minBoundX = mapBounds[1]
-        self.maxBoundY = mapBounds[2]
-        self.minBoundY = mapBounds[3]
+        self.maxBoundX = np.minimum(mapBounds[0], self.maxBoundX)
+        self.minBoundX = np.maximum(mapBounds[1], self.minBoundX)
+        self.maxBoundY = np.minimum(mapBounds[2], self.maxBoundY)
+        self.minBoundY = np.maximum(mapBounds[3], self.minBoundY)
 
         self.setpoints = [0.1*np.arange((self.minBoundX+0.2)*10, (self.maxBoundX-0.1)*10), 
                             0.1*np.arange((self.minBoundY+0.2)*10, (self.maxBoundY-0.1)*10)]
