@@ -1,9 +1,9 @@
 <launch>
   <arg name="no_of_agents"  default="3"/>
-  <node pkg="cbf_constraints" name="master_ta_node" type="task_assigner.py" output="screen">
+  <node pkg="cbf_constraints" name="master_ta_node" type="task_assigner_sim.py" output="screen">
     <param name="no_of_agents" value="$(arg no_of_agents)" />
   </node>
-  <node pkg="cbf_constraints" name="master_cu_node" type="constraint_updater.py" output="screen">
+  <node pkg="cbf_constraints" name="master_cu_node" type="constraint_updater_sim.py" output="screen">
     <param name="no_of_agents" value="$(arg no_of_agents)" />
   </node>
 </launch>
