@@ -200,7 +200,7 @@ class CentralController:
                     # print("{:.3f}, {:.3f}, {:.3f}".format(droneI.pos[0], droneI.pos[1], droneI.pos[2]))
                     # if droneI.name == "dcf1":
                     #     print("{:.3f}, {:.3f}, {:.3f}, {:.3f}".format(ugvErrPos[0], ugvErrPos[1], ugvErrPos[2], sqHorDist))
-                    if sqHorDist < 0.0009 and ugvErrPos[2] < 0.04 and np.linalg.norm(ugvErrVel) < 0.1 and not droneI.secondTask:
+                    if sqHorDist < 0.0016 and ugvErrPos[2] < 0.04 and np.linalg.norm(ugvErrVel) < 0.1 and not droneI.secondTask:
                         # print('Time to initiate landing')
                         droneModeMsg = Int8()
                         droneModeMsg.data = 2

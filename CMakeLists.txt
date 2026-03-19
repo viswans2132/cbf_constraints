@@ -166,7 +166,9 @@ include_directories(
 catkin_install_python(PROGRAMS
   src/py_node/master_cmd_node.py src/py_node/master_tb_node.py src/py_node/master_cf_tb_node.py 
   src/py_node/master_cf_tb_sim.py src/py_node/tro_master_cf_tb.py src/py_node/tro_master_cf_tb_sim.py
-  src/py_node/task_assigner.py src/py_node/constraint_updater.py
+  src/py_node/task_assigner.py src/py_node/constraint_updater.py src/py_node/task_assigner_sim.py 
+  src/py_node/constraint_updater_sim.py src/py_node/cons_relay.py src/py_node/master_control_node.py
+  src/py_node/control_relay.py 
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

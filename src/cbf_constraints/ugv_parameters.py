@@ -21,7 +21,7 @@ class UgvParameters(object):
         self.desPos = np.array([0.0, 0.0])
         self.desVel = np.array([0.0, 0.0])
 
-        self.kPos = np.array([-2.0, -2.0])
+        self.kPos = np.array([2.0, 2.0])
 
 
         self.hz = 1.0
@@ -56,7 +56,7 @@ class UgvParameters(object):
         self.omegaB = 0.3
 
 
-        self.odomFlag = False
+        self.odomStatus = False
         self.constraintsReceived = False
         self.paramFlag = False
 
@@ -99,8 +99,11 @@ class UgvParameters(object):
         velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y])
         self.vel[:2] = self.R.T.dot(velocity)
         self.ang_vel[2] = data.twist.twist.angular.z
-        if self.odomFlag == False:
-            self.odomFlag = True
+        if self.odomStatus == False:
+            self.odomStatus = True
+            # hold current x,y
+            self.desPos[0] = self.posOff[0]
+            self.desPos[1] = self.posOff[1]
             print('Odometry Received: {}'.format(self.name))
 
     def params_cb(self, msg):
@@ -135,8 +138,8 @@ class UgvParameters(object):
         self.maxBoundY = np.minimum(mapBounds[2], self.maxBoundY)
         self.minBoundY = np.maximum(mapBounds[3], self.minBoundY)
 
-        self.setpoints = [0.1*np.arange((self.minBoundX+0.2)*10, (self.maxBoundX-0.1)*10), 
-                            0.1*np.arange((self.minBoundY+0.2)*10, (self.maxBoundY-0.1)*10)]
+        self.setpoints = [0.1*np.arange((self.minBoundX+0.5)*10, (self.maxBoundX-0.5)*10), 
+                            0.1*np.arange((self.minBoundY+0.5)*10, (self.maxBoundY-0.5)*10)]
 
     def ref_cb(self, msg):
         try:

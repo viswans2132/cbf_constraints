@@ -1,6 +1,7 @@
  #!/usr/bin/env python
  # license removed for brevity
 import rospy
+import rospkg
 import pkg_resources
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
@@ -15,6 +16,8 @@ import cvxpy as cp
 import sys
 from cbf_constraints.drone_parameters import DroneParameters
 from cbf_constraints.ugv_parameters import UgvParameters
+from datetime import datetime
+import os
 
 
 class TaskAssigner():
@@ -43,6 +46,21 @@ class TaskAssigner():
         self.t = rospy.get_time()
         self.drones = []
         self.ugvs = []
+
+
+        # UGV: each entry is a list of task durations for one UGV
+        self.ugv_task_times = [[] for _ in range(self.no_agents)]
+        self.ugv_task_start_times = [None for _ in range(self.no_agents)]
+
+        # UAV: outward mission duration (go to random setpoint)
+        self.uav_task_times = [[] for _ in range(self.no_agents)]
+        self.uav_task_start_times = [None for _ in range(self.no_agents)]
+
+        # UAV: return-to-UGV duration
+        self.uav_return_times = [[] for _ in range(self.no_agents)]
+        self.uav_return_start_times = [None for _ in range(self.no_agents)]
+
+        self.results_saved = False
 
         self.offset = [0.0, 0.0]        
         self.rate = rospy.Rate(30)
@@ -85,7 +103,7 @@ class TaskAssigner():
             rospy.loginfo(f'[task_assigner]: Checking odometry for {ugv.name}', logger_name="task_assigner")
             try:
                 print(f'Hello')
-                while not ugv.odomFlag:
+                while not ugv.odomStatus:
                     if rospy.is_shutdown():
                         raise SystemError('Node is Shutdown')
                     self.rate.sleep()
@@ -99,7 +117,7 @@ class TaskAssigner():
 
             rospy.loginfo(f'[task_assigner]: Checking odometry for {drone.name}', logger_name="task_assigner")
             try:
-                while not drone.odomFlag:
+                while not drone.odomStatus:
                     if rospy.is_shutdown():
                         raise SystemError('Node is Shutdown')
                     self.rate.sleep()
@@ -143,11 +161,15 @@ class TaskAssigner():
             self.rate.sleep()
 
 
+
     def updateUgvSetpoint(self, index):
         ugv = self.ugvs[index]
         ugv.desPos = np.array([ugv.setpoints[0][np.random.randint(len(ugv.setpoints[0]))] + self.offset[0], 
                                 ugv.setpoints[1][np.random.randint(len(ugv.setpoints[1]))] + self.offset[1]])
         ugv.desVel = np.array([0.0, 0.0])
+
+        # Start timing this UGV task
+        self.ugv_task_start_times[index] = rospy.get_time()
 
     def updateDroneSetpoint(self, index):
         drone = self.drones[index]
@@ -160,6 +182,8 @@ class TaskAssigner():
             drone.desPos = np.array([self.droneSetpoints[np.random.randint(len(self.droneSetpoints))] + self.offset[0], 
                                     self.droneSetpoints[np.random.randint(len(self.droneSetpoints))] + self.offset[1], 0.8])
             drone.desVel = np.array([0.0, 0.0, 0.0])
+
+            self.uav_task_start_times[index] = rospy.get_time()
 
 
     def publishDroneRef(self, index):
@@ -194,7 +218,7 @@ class TaskAssigner():
                 print("Invalid number of values in the msg. Currently, there are {} drones active.".format(self.no_agents))
             else:
                 data = msg.data
-                print(data[0])
+                # print(data[0])
                 if self.filterFlag == False:
                     for i in range(self.no_agents):
                         modeMsg = Int8()
@@ -256,7 +280,16 @@ class TaskAssigner():
     
     def setUgvMode(self, msg):
         if len(msg.data) != len(self.ugvModePub):
-            print("Invalid number of values in the msg. Currently, there are {} ugvs active.".format(self.no_agents))
+            if len(msg.data) != 1:
+                print("Invalid number of values in the msg. Currently, there are {} ugvs active.".format(self.no_agents))
+            else:
+                data = msg.data
+
+                for i in range(self.no_agents):
+                    modeMsg = Int8()
+                    modeMsg.data = data[0]
+                    self.ugvModePub[i].publish(modeMsg)
+
         else:
             for i in range(self.no_agents):
                 ugvModeMsg = Int8()
@@ -277,10 +310,23 @@ class TaskAssigner():
                 # if i == 0:
                     # print('---')
                     # rospy.loginfo(f'[task_assigner]: {drone.name} Pos: {drone.pos[0]:.2f}: {ugv.pos[0]:.2f}: {drone.pos[1]:.2f}: {ugv.pos[1]:.2f} ')
-                    # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
-                if la.norm(ugvPosErr[:2]) < 0.03 and ugvPosErr[2] < 0.04 and la.norm(ugvVelErr) < 0.2:
+                # rospy.loginfo(f'[task_assigner]: {ugv.name} Error: {la.norm(ugvVelErr):.2f}: {ugvPosErr[2]:.2f}: {la.norm(ugvPosErr[:2]):.2f} ')
+                if la.norm(ugvPosErr[:2]) < 0.03 and ugvPosErr[2] < 0.052 and la.norm(ugvVelErr) < 0.1:
+                    if self.uav_return_start_times[i] is not None:
+                        return_time = rospy.get_time() - self.uav_return_start_times[i]
+                        self.uav_return_times[i].append(return_time)
+                        self.uav_return_start_times[i] = None
+                        rospy.loginfo(f'{drone.name} completed return in {return_time:.2f} s')
+
                     if drone.droneMode != 2:
                         self.publishDroneMode(i,2)
+
+                    # second landing detected
+                    if (not drone.firstTask) and (not drone.secondTask):
+                        drone.secondTask = True
+                        rospy.loginfo(f'{drone.name} completed second landing')
+
+
 
             else:
                 if not drone.taskFlag:
@@ -289,6 +335,16 @@ class TaskAssigner():
                 else:
                     droneErr = drone.pos - drone.desPos
                     if la.norm(droneErr) < 0.1:
+                        # Stop outward-task timer
+                        if self.uav_task_start_times[i] is not None:
+                            task_time = rospy.get_time() - self.uav_task_start_times[i]
+                            self.uav_task_times[i].append(task_time)
+                            self.uav_task_start_times[i] = None
+                            rospy.loginfo(f'{drone.name} completed UAV task in {task_time:.2f} s')
+
+                        # Start return timer
+                        self.uav_return_start_times[i] = rospy.get_time()
+
                         drone.returnFlag =  True
                         self.rate.sleep()
 
@@ -301,12 +357,46 @@ class TaskAssigner():
             self.publishDroneRef(i)
 
             ugvErr = ugv.pos[:2] - ugv.desPos
-            # print('---')
-            # print('---')
             if la.norm(ugvErr) < 0.1:
+                if self.ugv_task_start_times[i] is not None:
+                    task_time = rospy.get_time() - self.ugv_task_start_times[i]
+                    self.ugv_task_times[i].append(task_time)
+                    self.ugv_task_start_times[i] = None
+                    rospy.loginfo(f'{ugv.name} completed UGV task in {task_time:.2f} s')
                 self.updateUgvSetpoint(i)
 
             self.publishUgvRef(i)
+
+        if (not self.results_saved) and all(drone.secondTask for drone in self.drones):
+            self.save_results()
+            self.results_saved = True
+
+        # if self.results_saved:            
+        #     for i in range(self.no_agents):
+        #         ugvModeMsg = Int8()
+        #         ugvModeMsg.data = 2
+        #         self.ugvModePub[i].publish(ugvModeMsg)
+
+            # rospy.signal_shutdown('All drones completed two tasks')
+
+
+    def save_results(self):
+        data = {
+            'ugv_task_times': self.ugv_task_times,
+            'uav_task_times': self.uav_task_times,
+            'uav_return_times': self.uav_return_times
+        }
+
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        rospack = rospkg.RosPack()
+        pkg_path = rospack.get_path("cbf_constraints")
+
+
+        filename = os.path.join(pkg_path, "time_results", f"task_times_{timestamp}.npy")
+
+        np.save(filename, data)
+        rospy.loginfo(f'Saved results to {filename}')
 
 
 if __name__ == '__main__':

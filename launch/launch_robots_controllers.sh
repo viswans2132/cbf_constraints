@@ -98,7 +98,6 @@ else
 
 
 
-
 # Create the launch file
 launch_file="sim_launch.launch"
 echo "<launch>" > $launch_file
@@ -173,10 +172,13 @@ EOL
 done
 
 cat <<EOL >> $launch_file
-  <node pkg="cbf_constraints" name="master_task_assigner" type="task_assigner.py" output="screen">
+  <node pkg="cbf_constraints" name="master_task_assigner" type="task_assigner_sim.py" output="screen">
     <param name="no_of_agents" value="$pairs" />
   </node>
-  <node pkg="cbf_constraints" name="master_constraint_updater" type="constraint_updater.py" output="screen">
+  <node pkg="cbf_constraints" name="master_constraint_updater" type="constraint_updater_sim.py" output="screen">
+    <param name="no_of_agents" value="$pairs" />
+  </node>
+  <node pkg="cbf_constraints" name="constraints_relay" type="cons_relay.py" output="screen">
     <param name="no_of_agents" value="$pairs" />
   </node>
 EOL

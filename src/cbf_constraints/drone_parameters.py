@@ -25,7 +25,7 @@ class DroneParameters(object):
         self.omegaC = 5.0
         self.omegaB = 1.0
 
-        self.odomFlag = False
+        self.odomStatus = False
         self.followFlag = False
         self.returnFlag = False
         self.firstTask = True
@@ -42,6 +42,8 @@ class DroneParameters(object):
         self.southBound = -1.5
         self.eastBound = -1.5
         self.westBound = -1.5
+
+        self.kPos = np.array([2.5, 2.5, 0.7])
 
 
     def odom_cb(self, data):
@@ -62,9 +64,18 @@ class DroneParameters(object):
         velocity = np.array([data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z])
         self.vel = self.R.T.dot(velocity)
         self.ang_vel[2] = data.twist.twist.angular.z
-        if self.odomFlag == False:
+        if self.odomStatus == False:
             self.offsetAngle = np.arctan2(self.pos[1], self.pos[0])
-            self.odomFlag = True
+            # hold current x,y
+            self.desPos[0] = self.pos[0]
+            self.desPos[1] = self.pos[1]
+
+            # takeoff target
+            self.desPos[2] = 0.8
+
+            print(f'{self.name}: Odometry received. Taking off.')
+
+            self.odomStatus = True
 
     def params_cb(self, msg):
         self.kRad = np.array(msg.kRad)
