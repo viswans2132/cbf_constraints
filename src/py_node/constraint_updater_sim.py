@@ -66,6 +66,16 @@ class ConstraintUpdater:
         self.filesSaved = False
         self.tasksComplete = False
 
+        # QP timing storage: list of lists, one per robot
+        self.drone_qp_times = [[] for _ in range(no_agents)]
+        self.ugv_qp_times = [[] for _ in range(no_agents)]
+
+        # Pre-allocate cvxpy variables for centralized QP timing
+        self._uav_vars = [cvxpy.Variable(3) for _ in range(no_agents)]
+        self._uav_Ps = [np.eye(3) for _ in range(no_agents)]
+        self._ugv_vars = [cvxpy.Variable(2) for _ in range(no_agents)]
+        self._ugv_Ps = [np.eye(2) for _ in range(no_agents)]
+
 
 
         for i in range(no_agents):
@@ -181,6 +191,7 @@ class ConstraintUpdater:
             self.loop()
             if self.tasksComplete and not self.filesSaved:
                 self.save_h_func()
+                self.save_qp_times()
                 self.filesSaved = True
             self.rate.sleep()
 
@@ -204,6 +215,22 @@ class ConstraintUpdater:
         np.save(filename, data)
 
         rospy.loginfo("Saved H func to %s", filename)
+
+    def save_qp_times(self):
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+
+        data = {
+            "drone_qp_times": [np.array(t, dtype=float) for t in self.drone_qp_times],
+            "ugv_qp_times": [np.array(t, dtype=float) for t in self.ugv_qp_times],
+        }
+
+        rospack = rospkg.RosPack()
+        pkg_path = rospack.get_path("cbf_constraints")
+
+        filename = os.path.join(pkg_path, "time_results", f"qp_times_{timestamp}.npy")
+        np.save(filename, data)
+
+        rospy.loginfo("Saved QP times to %s", filename)
 
     def updateUgvBoundCons(self, i, h_log):
         ugvI = self.ugvs[i]
@@ -379,6 +406,20 @@ class ConstraintUpdater:
                 ugvK = self.ugvs[k]
                 self.updateUgvSphCons(i, k, h_log_u)
 
+            # Time the UGV QP solve (same formulation as in ugv_lib.py)
+            try:
+                u_ugv = self._ugv_vars[i]
+                P_ugv = self._ugv_Ps[i]
+                u_ref_ugv = np.zeros(2)  # nominal reference velocity
+                constraints_ugv = [self.C_[i] @ u_ugv >= self.d_[i].flatten()]
+                prob_ugv = cvxpy.Problem(cvxpy.Minimize(cvxpy.quad_form(u_ugv - u_ref_ugv, P_ugv)), constraints_ugv)
+                t0_ugv = time.perf_counter()
+                prob_ugv.solve()
+                t1_ugv = time.perf_counter()
+                self.ugv_qp_times[i].append(t1_ugv - t0_ugv)
+            except Exception:
+                pass
+
             self.pubUgvConsMatrix(i)
 
             if droneI.droneMode == 2:
@@ -399,6 +440,20 @@ class ConstraintUpdater:
                     if i != k:
                         ugvK = self.ugvs[k]
                         self.updateAirCons(i, k, h_log_d)
+
+                # Time the UAV QP solve (same formulation as in drone_lib.py)
+                try:
+                    u_uav = self._uav_vars[i]
+                    P_uav = self._uav_Ps[i]
+                    u_ref_uav = np.zeros(3)  # nominal reference velocity
+                    constraints_uav = [self.A_[i] @ u_uav >= self.b_[i].flatten()]
+                    prob_uav = cvxpy.Problem(cvxpy.Minimize(cvxpy.quad_form(u_uav - u_ref_uav, P_uav)), constraints_uav)
+                    t0_uav = time.perf_counter()
+                    prob_uav.solve()
+                    t1_uav = time.perf_counter()
+                    self.drone_qp_times[i].append(t1_uav - t0_uav)
+                except Exception:
+                    pass
 
                 self.pubDroConsMatrix(i)
 
