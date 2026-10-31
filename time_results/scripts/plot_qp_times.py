@@ -101,8 +101,11 @@ def plot_histogram(drone_times, ugv_times, save_path=None):
     """Overlaid histogram of UAV vs UGV QP times."""
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    drone_flat = np.concatenate([t for t in drone_times if len(t) > 0]) if drone_times else np.array([])
-    ugv_flat = np.concatenate([t for t in ugv_times if len(t) > 0]) if ugv_times else np.array([])
+    drone_nonempty = [t for t in drone_times if len(t) > 0]
+    ugv_nonempty = [t for t in ugv_times if len(t) > 0]
+
+    drone_flat = np.concatenate(drone_nonempty) if drone_nonempty else np.array([])
+    ugv_flat = np.concatenate(ugv_nonempty) if ugv_nonempty else np.array([])
 
     bins = np.linspace(0, max(
         _to_ms(drone_flat).max() if len(drone_flat) > 0 else 1,
