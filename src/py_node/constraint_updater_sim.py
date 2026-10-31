@@ -186,6 +186,9 @@ class ConstraintUpdater:
             self.ugvParamPub[i].publish(paramMsg)
             rospy.loginfo("[constraint_updater]: Received params for ugv: %s", ugv.name)
 
+        # Auto-activate UAV filter once all agents are initialised
+        rospy.loginfo("[constraint_updater]: All agents initialised – activating UAV filter.")
+        self.filterFlag = True
 
         while not rospy.is_shutdown():
             self.loop()

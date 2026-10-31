@@ -154,6 +154,10 @@ class TaskAssigner():
                 print('Node is shut down by KeyboardInterrupt')
             rospy.loginfo(f'[task_assigner]: Mode is changed for {ugv.name}', logger_name="task_assigner")
 
+        # All agents ready – send mode=0 to activate drone trajectory following
+        rospy.loginfo('[task_assigner]: All agents initialised – activating drone trajectory following (mode 0).')
+        for i in range(self.no_agents):
+            self.publishDroneMode(i, 0)
 
         while not rospy.is_shutdown():
             # rospy.loginfo(f'[task_assigner]: Publishing in the loop', logger_name="task_assigner")
@@ -370,14 +374,11 @@ class TaskAssigner():
         if (not self.results_saved) and all(drone.secondTask for drone in self.drones):
             self.save_results()
             self.results_saved = True
-
-        # if self.results_saved:            
-        #     for i in range(self.no_agents):
-        #         ugvModeMsg = Int8()
-        #         ugvModeMsg.data = 2
-        #         self.ugvModePub[i].publish(ugvModeMsg)
-
-            # rospy.signal_shutdown('All drones completed two tasks')
+            # Signal constraint_updater to save QP times
+            for i in range(self.no_agents):
+                ugvModeMsg = Int8()
+                ugvModeMsg.data = 2
+                self.ugvModePub[i].publish(ugvModeMsg)
 
 
     def save_results(self):
