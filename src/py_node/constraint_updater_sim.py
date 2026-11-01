@@ -158,9 +158,14 @@ class ConstraintUpdater:
             
             rospy.loginfo(f"[constraint_updater]: Checking the params for drone: {drone.name}")
             try:
+                t_param_start = rospy.get_time()
                 while not drone.paramFlag:
                     if rospy.is_shutdown():
                         raise SystemError('Node is Shutdown')
+                    if rospy.get_time() - t_param_start > 5.0:
+                        rospy.logwarn(f"[constraint_updater]: Timeout waiting for params of {drone.name}, using defaults.")
+                        drone.paramFlag = True
+                        break
                     self.rate.sleep()
             except SystemError:
                 print(f'{self.name} is shut down by KeyboardInterrupt.')
@@ -173,9 +178,14 @@ class ConstraintUpdater:
             rospy.loginfo("[constraint_updater]: Checking the params for ugv: %s", ugv.name)
             try:
                 rospy.loginfo(f'[constraint_updater]: Checking UGV: {ugv.name}\'s parameters.')
+                t_param_start = rospy.get_time()
                 while not ugv.paramFlag:
                     if rospy.is_shutdown():
                         raise SystemError('Node is Shutdown')
+                    if rospy.get_time() - t_param_start > 5.0:
+                        rospy.logwarn(f"[constraint_updater]: Timeout waiting for params of {ugv.name}, using defaults.")
+                        ugv.paramFlag = True
+                        break
                     self.rate.sleep()
             except SystemError:
                 print(f'{self.name} is shut down by KeyboardInterrupt.')
@@ -193,9 +203,12 @@ class ConstraintUpdater:
         while not rospy.is_shutdown():
             self.loop()
             if self.tasksComplete and not self.filesSaved:
-                self.save_h_func()
-                self.save_qp_times()
-                self.filesSaved = True
+                # Require at least 1000 UGV QP samples before saving
+                total_ugv = sum(len(t) for t in self.ugv_qp_times)
+                if total_ugv >= 1000:
+                    self.save_h_func()
+                    self.save_qp_times()
+                    self.filesSaved = True
             self.rate.sleep()
 
 
